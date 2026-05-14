@@ -1,3 +1,96 @@
 <resources>
     <string name="app_name">Reps</string>
+
+    <!-- Onboarding navigation -->
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_finish">Let\'s Go!</string>
+    <string name="onboarding_step_indicator">Step %1$d of 5</string>
+
+    <!-- Step 1: Welcome -->
+    <string name="onboarding_tagline">Every rep starts on the plate.</string>
+    <string name="onboarding_subtitle">AI-powered fitness &amp; nutrition. 100%% on-device. No subscriptions.</string>
+    <string name="onboarding_cta">Get Started</string>
+
+    <!-- Step 2: Personal -->
+    <string name="onboarding_personal_title">Tell us about you</string>
+    <string name="onboarding_name_label">Your name</string>
+    <string name="onboarding_name_placeholder">Enter your name</string>
+    <string name="onboarding_age_label">Age</string>
+    <string name="onboarding_age_placeholder">e.g. 28</string>
+
+    <!-- Step 3: Body stats -->
+    <string name="onboarding_body_title">Your body stats</string>
+    <string name="onboarding_weight_label">Current weight (kg)</string>
+    <string name="onboarding_weight_placeholder">e.g. 80</string>
+    <string name="onboarding_target_weight_label">Target weight (kg)</string>
+    <string name="onboarding_target_weight_placeholder">e.g. 72</string>
+    <string name="onboarding_height_label">Height (cm)</string>
+    <string name="onboarding_height_placeholder">e.g. 175</string>
+
+    <!-- Step 4: Activity -->
+    <string name="onboarding_activity_title">Your training profile</string>
+    <string name="onboarding_activity_level_label">Activity level</string>
+    <string name="onboarding_workout_days_label">Workout days per week</string>
+    <string name="onboarding_workout_days_value">%1$d days</string>
+    <string name="onboarding_shoulder_label">I have a shoulder injury or restriction</string>
+
+    <!-- Activity level labels -->
+    <string-array name="activity_level_labels">
+        <item>Sedentary (desk job, little movement)</item>
+        <item>Light (1–3 workouts per week)</item>
+        <item>Moderate (3–5 workouts per week)</item>
+        <item>Active (6–7 workouts per week)</item>
+        <item>Very Active (physical job + daily training)</item>
+    </string-array>
+
+    <!-- Step 5: Dietary -->
+    <string name="onboarding_dietary_title">Your food preferences</string>
+    <string name="onboarding_dietary_restrictions_label">Dietary restrictions</string>
+    <string name="onboarding_cuisine_label">Cuisine preferences</string>
+    <string name="onboarding_optional_note">Select all that apply (optional)</string>
+
+    <!-- Dietary restriction labels (order matches keys in ViewModel) -->
+    <string-array name="dietary_restriction_labels">
+        <item>Vegetarian</item>
+        <item>Vegan</item>
+        <item>No Beef</item>
+        <item>No Pork</item>
+        <item>No Seafood</item>
+        <item>Gluten-Free</item>
+        <item>Dairy-Free</item>
+    </string-array>
+
+    <!-- Cuisine preference labels (order matches keys in ViewModel) -->
+    <string-array name="cuisine_preference_labels">
+        <item>South Indian</item>
+        <item>North Indian</item>
+        <item>Mediterranean</item>
+        <item>Continental</item>
+        <item>Chinese</item>
+    </string-array>
+
+    <!-- Bottom navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_meals">Meals</string>
+    <string name="nav_workout">Workout</string>
+    <string name="nav_progress">Progress</string>
+    <string name="nav_more">More</string>
+
+    <!-- Screen titles -->
+    <string name="screen_dashboard">Dashboard</string>
+    <string name="screen_meal_log">Meal Log</string>
+    <string name="screen_food_search">Food Search</string>
+    <string name="screen_workout">Workout</string>
+    <string name="screen_progress">Progress</string>
+    <string name="screen_grocery">Grocery List</string>
+    <string name="screen_settings">Settings</string>
+    <string name="screen_ai_coach">AI Coach</string>
+    <string name="screen_more">More</string>
+
+    <!-- Placeholders -->
+    <string name="coming_soon">Coming in a future phase</string>
+    <string name="more_ai_coach">AI Coach</string>
+    <string name="more_grocery">Grocery List</string>
+    <string name="more_settings">Settings</string>
 </resources>

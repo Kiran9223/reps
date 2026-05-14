@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew assembleDebug)",
+      "Bash(./gradlew :app:checkDebugAarMetadata --stacktrace)",
+      "Bash(./gradlew :app:hiltJavaCompileDebug)",
+      "Bash(./gradlew :app:hiltJavaCompileDebug --stacktrace)",
+      "Bash(./gradlew :app:hiltJavaCompileDebug --info)"
+    ]
+  }
+}
