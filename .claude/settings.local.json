@@ -5,7 +5,9 @@
       "Bash(./gradlew :app:checkDebugAarMetadata --stacktrace)",
       "Bash(./gradlew :app:hiltJavaCompileDebug)",
       "Bash(./gradlew :app:hiltJavaCompileDebug --stacktrace)",
-      "Bash(./gradlew :app:hiltJavaCompileDebug --info)"
+      "Bash(./gradlew :app:hiltJavaCompileDebug --info)",
+      "Bash(./gradlew compileDebugKotlin)",
+      "Bash(./gradlew clean *)"
     ]
   }
 }

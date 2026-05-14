@@ -93,4 +93,74 @@
     <string name="more_ai_coach">AI Coach</string>
     <string name="more_grocery">Grocery List</string>
     <string name="more_settings">Settings</string>
+
+    <!-- Food Search -->
+    <string name="food_search_hint">Search foods…</string>
+    <string name="food_tab_all">All</string>
+    <string name="food_tab_indian">Indian</string>
+    <string name="food_tab_recent">Recent</string>
+    <string name="food_tab_custom">Custom</string>
+    <string name="food_search_empty_all">Search for a food above or scan a barcode</string>
+    <string name="food_search_empty_indian">No Indian foods found</string>
+    <string name="food_search_empty_recent">No recent foods yet</string>
+    <string name="food_search_empty_custom">No custom foods yet</string>
+    <string name="food_add_custom">Add Custom Food</string>
+    <string name="food_scan_barcode">Scan Barcode</string>
+    <string name="food_error_load">Unable to load foods</string>
+
+    <!-- Food Detail -->
+    <string name="food_detail_title">Food Detail</string>
+    <string name="food_detail_servings">Servings</string>
+    <string name="food_detail_per_serving">Per serving: %1$s</string>
+    <string name="food_detail_total_calories">%1$d kcal</string>
+    <string name="food_detail_add_to_log">Add to Meal Log</string>
+    <string name="food_detail_added">Added to meal log</string>
+    <string name="food_detail_nutrition">Nutrition Facts</string>
+    <string name="food_detail_calories">Calories</string>
+    <string name="food_detail_protein">Protein</string>
+    <string name="food_detail_carbs">Carbs</string>
+    <string name="food_detail_fat">Fat</string>
+    <string name="food_detail_fiber">Fiber</string>
+    <string name="food_detail_grams">%1$sg</string>
+    <string name="food_detail_kcal">%1$d kcal</string>
+    <string name="food_detail_not_found">Food not found</string>
+    <string name="food_detail_servings_label">%1$.1f × %2$s</string>
+
+    <!-- Barcode Scanner -->
+    <string name="barcode_scanner_title">Scan Barcode</string>
+    <string name="barcode_permission_denied">Camera permission required to scan barcodes</string>
+    <string name="barcode_grant_permission">Grant Permission</string>
+    <string name="barcode_torch">Toggle torch</string>
+    <string name="barcode_scanning">Point camera at barcode</string>
+    <string name="barcode_looking_up">Looking up product…</string>
+    <string name="barcode_not_found">Product not found in database</string>
+    <string name="barcode_try_again">Try Again</string>
+
+    <!-- Custom Food Creation -->
+    <string name="custom_food_title">Create Custom Food</string>
+    <string name="custom_food_name_label">Food name *</string>
+    <string name="custom_food_name_placeholder">e.g. Homemade Protein Bar</string>
+    <string name="custom_food_serving_desc_label">Serving description *</string>
+    <string name="custom_food_serving_desc_placeholder">e.g. 1 bar, 1 cup, 100g</string>
+    <string name="custom_food_serving_grams_label">Serving size (g) *</string>
+    <string name="custom_food_calories_label">Calories (kcal) *</string>
+    <string name="custom_food_protein_label">Protein (g) *</string>
+    <string name="custom_food_carbs_label">Carbs (g) *</string>
+    <string name="custom_food_fat_label">Fat (g) *</string>
+    <string name="custom_food_fiber_label">Fiber (g)</string>
+    <string name="custom_food_cuisine_label">Cuisine tags (optional)</string>
+    <string name="custom_food_save">Save Food</string>
+    <string name="custom_food_error_name">Food name is required</string>
+    <string name="custom_food_error_serving_desc">Serving description is required</string>
+    <string name="custom_food_error_invalid_number">Enter a valid number</string>
+    <string name="custom_food_saved">Food saved!</string>
+
+    <!-- Screen titles (new) -->
+    <string name="screen_food_detail">Food Detail</string>
+    <string name="screen_barcode_scanner">Barcode Scanner</string>
+    <string name="screen_custom_food">Create Food</string>
+
+    <!-- Common -->
+    <string name="nav_back">Back</string>
+    <string name="cd_barcode_scan">Scan barcode</string>
 </resources>

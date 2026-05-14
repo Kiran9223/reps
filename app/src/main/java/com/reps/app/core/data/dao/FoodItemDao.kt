@@ -42,4 +42,13 @@ interface FoodItemDao {
 
     @Query("SELECT COUNT(*) FROM food_items WHERE source = 'ASSET'")
     suspend fun countSeededItems(): Int
+
+    @Query("SELECT * FROM food_items WHERE name LIKE '%' || :query || '%' AND isDeleted = 0 ORDER BY name ASC")
+    suspend fun searchImmediate(query: String): List<FoodItemEntity>
+
+    @Query("SELECT * FROM food_items WHERE externalId = :externalId AND source = :source AND isDeleted = 0 LIMIT 1")
+    suspend fun getByExternalId(externalId: String, source: String): FoodItemEntity?
+
+    @Query("SELECT * FROM food_items WHERE isDeleted = 0 ORDER BY createdAt DESC LIMIT :limit")
+    fun getRecent(limit: Int = 30): Flow<List<FoodItemEntity>>
 }
