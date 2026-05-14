@@ -163,4 +163,69 @@
     <!-- Common -->
     <string name="nav_back">Back</string>
     <string name="cd_barcode_scan">Scan barcode</string>
+
+    <!-- Dashboard tabs -->
+    <string name="dashboard_tab_today">Today</string>
+    <string name="dashboard_tab_progress">Progress</string>
+
+    <!-- Dashboard macros -->
+    <string name="dashboard_calories">Calories</string>
+    <string name="dashboard_protein">Protein</string>
+    <string name="dashboard_carbs">Carbs</string>
+    <string name="dashboard_fat">Fat</string>
+    <string name="dashboard_water">Water</string>
+    <string name="dashboard_add_water">+250 ml</string>
+    <string name="dashboard_calories_format">%1$d / %2$d kcal</string>
+    <string name="dashboard_water_format">%1$d / %2$d ml</string>
+    <string name="dashboard_macro_grams">%1$dg / %2$dg</string>
+
+    <!-- Dashboard insight -->
+    <string name="dashboard_insight_title">Daily Insight</string>
+    <string name="dashboard_insight_placeholder">Log your meals to unlock AI insights in Phase 7.</string>
+
+    <!-- Dashboard slot cards -->
+    <string name="dashboard_slot_empty">Tap to log</string>
+    <string name="dashboard_slot_kcal">%1$d kcal</string>
+
+    <!-- Dashboard slot bottom sheet -->
+    <string name="slot_add_food_search">Search Food</string>
+    <string name="slot_add_food_scan">Scan Barcode</string>
+    <string name="slot_add_food_nl">Natural Language</string>
+    <string name="slot_total_macros">P %1$.0fg  ·  C %2$.0fg  ·  F %3$.0fg</string>
+    <string name="slot_no_entries">No foods logged yet</string>
+    <string name="slot_entry_detail">%1$.1f× serving  ·  %2$.0f kcal</string>
+
+    <!-- Date navigation -->
+    <string name="date_today">Today</string>
+    <string name="date_yesterday">Yesterday</string>
+
+    <!-- Progress tab -->
+    <string name="progress_7day_heading">7-Day Overview</string>
+    <string name="progress_protein_goal">Protein Goal</string>
+    <string name="progress_protein_goal_value">%1$d / 7 days</string>
+    <string name="progress_avg_calories">Avg Calories</string>
+    <string name="progress_avg_calories_value">%1$d kcal</string>
+    <string name="progress_streak">Current Streak</string>
+    <string name="progress_streak_value">%1$d days</string>
+    <string name="progress_no_data">Log meals to see your weekly progress</string>
+
+    <!-- Food search with slot context -->
+    <string name="food_search_adding_to">Adding food to %1$s</string>
+
+    <!-- Natural Language Entry -->
+    <string name="nl_title">What did you eat?</string>
+    <string name="nl_hint">e.g. 2 eggs and a bowl of oats</string>
+    <string name="nl_find_foods">Find Foods</string>
+    <string name="nl_log_it">Log It</string>
+    <string name="nl_parsing">Searching…</string>
+    <string name="nl_not_found">No matching foods found. Try searching manually.</string>
+    <string name="nl_found_prefix">Found these foods:</string>
+    <string name="nl_saved">Foods logged!</string>
+    <string name="nl_quantity_format">%1$.1f× %2$s</string>
+    <string name="nl_search_manually">Search Manually</string>
+
+    <!-- Meal Log screen -->
+    <string name="meal_log_no_entries">No meals logged</string>
+    <string name="meal_log_slot_header">%1$s · %2$d kcal</string>
+    <string name="meal_log_add_food">Add Food</string>
 </resources>

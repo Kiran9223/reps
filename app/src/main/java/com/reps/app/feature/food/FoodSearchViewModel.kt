@@ -1,8 +1,10 @@
 package com.reps.app.feature.food
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reps.app.core.domain.model.FoodItem
+import com.reps.app.core.domain.model.MealSlot
 import com.reps.app.core.domain.repository.FoodRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -11,11 +13,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,16 +28,23 @@ data class FoodSearchUiState(
     val activeTab: FoodTab = FoodTab.ALL,
     val foods: List<FoodItem> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val slotDisplayName: String? = null
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class FoodSearchViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val foodRepository: FoodRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(FoodSearchUiState())
+    private val slotName: String? = savedStateHandle.get<String>("slot")?.takeIf { it.isNotBlank() }
+    private val slotDisplayName: String? = slotName?.let {
+        runCatching { MealSlot.valueOf(it).displayName }.getOrNull()
+    }
+
+    private val _uiState = MutableStateFlow(FoodSearchUiState(slotDisplayName = slotDisplayName))
     val uiState: StateFlow<FoodSearchUiState> = _uiState.asStateFlow()
 
     private val _query = MutableStateFlow("")
@@ -74,9 +82,7 @@ class FoodSearchViewModel @Inject constructor(
                     baseFlow.map { foods ->
                         foods.filter { it.name.contains(query, ignoreCase = true) }
                     }
-                } else {
-                    baseFlow
-                }
+                } else baseFlow
 
             resultFlow.collect { foods ->
                 _uiState.update { it.copy(foods = foods, isLoading = false) }

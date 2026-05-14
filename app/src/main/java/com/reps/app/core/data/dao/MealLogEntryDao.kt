@@ -19,6 +19,9 @@ interface MealLogEntryDao {
     @Query("SELECT * FROM meal_log_entries WHERE mealLogId = :mealLogId AND isDeleted = 0")
     fun getByMealLogId(mealLogId: Long): Flow<List<MealLogEntryEntity>>
 
+    @Query("SELECT * FROM meal_log_entries WHERE mealLogId = :mealLogId AND isDeleted = 0")
+    suspend fun getByMealLogIdImmediate(mealLogId: Long): List<MealLogEntryEntity>
+
     @Query("SELECT * FROM meal_log_entries WHERE id = :id AND isDeleted = 0")
     suspend fun getById(id: Long): MealLogEntryEntity?
 

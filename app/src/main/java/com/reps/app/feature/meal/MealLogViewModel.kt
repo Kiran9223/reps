@@ -1,0 +1,45 @@
+package com.reps.app.feature.meal
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.reps.app.core.domain.model.DayLog
+import com.reps.app.core.domain.repository.MealLogRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import javax.inject.Inject
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+class MealLogViewModel @Inject constructor(
+    private val mealLogRepository: MealLogRepository
+) : ViewModel() {
+
+    private val _selectedDate = MutableStateFlow(LocalDate.now())
+    val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
+
+    val dayLog: StateFlow<DayLog> = _selectedDate
+        .flatMapLatest { date -> mealLogRepository.getDayLog(date.toString()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), DayLog(LocalDate.now().toString()))
+
+    fun onPreviousDay() { _selectedDate.value = _selectedDate.value.minusDays(1) }
+
+    fun onNextDay() {
+        if (_selectedDate.value < LocalDate.now()) {
+            _selectedDate.value = _selectedDate.value.plusDays(1)
+        }
+    }
+
+    fun removeLogEntry(entryId: Long) {
+        viewModelScope.launch { mealLogRepository.removeFoodFromLog(entryId) }
+    }
+
+    fun getSelectedDateStr(): String = _selectedDate.value.toString()
+}

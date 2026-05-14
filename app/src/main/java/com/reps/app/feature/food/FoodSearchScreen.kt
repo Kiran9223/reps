@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -89,6 +90,19 @@ fun FoodSearchScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
+            if (state.slotDisplayName != null) {
+                Text(
+                    text = stringResource(R.string.food_search_adding_to, state.slotDisplayName!!),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(vertical = 6.dp, horizontal = 16.dp)
+                )
+            }
+
             SearchBar(
                 query = state.query,
                 onQueryChange = viewModel::onQueryChange,
@@ -139,7 +153,7 @@ fun FoodSearchScreen(
                         items(state.foods, key = { it.id }) { food ->
                             FoodItemCard(food = food, onClick = { onFoodClick(food.id) })
                         }
-                        item { Spacer(Modifier.height(88.dp)) } // FAB clearance
+                        item { Spacer(Modifier.height(88.dp)) }
                     }
                 }
             }
@@ -263,9 +277,7 @@ private fun ErrorState(message: String) {
 
 @Composable
 private fun ShimmerFoodList() {
-    LazyColumn {
-        items(6) { ShimmerFoodCard() }
-    }
+    LazyColumn { items(6) { ShimmerFoodCard() } }
 }
 
 @Composable

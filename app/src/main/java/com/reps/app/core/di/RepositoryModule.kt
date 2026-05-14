@@ -1,7 +1,9 @@
 package com.reps.app.core.di
 
 import com.reps.app.core.data.repository.FoodRepositoryImpl
+import com.reps.app.core.data.repository.MealLogRepositoryImpl
 import com.reps.app.core.domain.repository.FoodRepository
+import com.reps.app.core.domain.repository.MealLogRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -12,7 +14,9 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
-    @Binds
-    @Singleton
+    @Binds @Singleton
     abstract fun bindFoodRepository(impl: FoodRepositoryImpl): FoodRepository
+
+    @Binds @Singleton
+    abstract fun bindMealLogRepository(impl: MealLogRepositoryImpl): MealLogRepository
 }

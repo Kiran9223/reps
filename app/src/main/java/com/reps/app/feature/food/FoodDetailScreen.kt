@@ -19,7 +19,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,9 +60,15 @@ fun FoodDetailScreen(
 ) {
     val food by viewModel.food.collectAsStateWithLifecycle()
     val multiplier by viewModel.multiplier.collectAsStateWithLifecycle()
+    val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val addedToLog by viewModel.addedToLog.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val addedMsg = stringResource(R.string.food_detail_added)
+
+    LaunchedEffect(addedToLog) {
+        if (addedToLog) onNavigateBack()
+    }
 
     Scaffold(
         topBar = {
@@ -90,9 +96,16 @@ fun FoodDetailScreen(
             else -> FoodDetailContent(
                 food = food!!,
                 multiplier = multiplier,
+                isSaving = isSaving,
+                hasSlotContext = viewModel.hasSlotContext,
+                slotDisplayName = viewModel.slotDisplayName,
                 onMultiplierChange = viewModel::setMultiplier,
                 onAddToLog = {
-                    scope.launch { snackbarHostState.showSnackbar(addedMsg) }
+                    if (viewModel.hasSlotContext) {
+                        viewModel.addFoodToLog()
+                    } else {
+                        scope.launch { snackbarHostState.showSnackbar(addedMsg) }
+                    }
                 },
                 modifier = Modifier.padding(innerPadding)
             )
@@ -104,6 +117,9 @@ fun FoodDetailScreen(
 private fun FoodDetailContent(
     food: FoodItem,
     multiplier: Float,
+    isSaving: Boolean,
+    hasSlotContext: Boolean,
+    slotDisplayName: String?,
     onMultiplierChange: (Float) -> Unit,
     onAddToLog: () -> Unit,
     modifier: Modifier = Modifier
@@ -129,7 +145,6 @@ private fun FoodDetailContent(
             Spacer(Modifier.height(8.dp))
         }
 
-        // Calories hero
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -139,10 +154,7 @@ private fun FoodDetailContent(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    stringResource(
-                        R.string.food_detail_total_calories,
-                        food.caloriesPerServing.scale().toInt()
-                    ),
+                    stringResource(R.string.food_detail_total_calories, food.caloriesPerServing.scale().toInt()),
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -157,7 +169,6 @@ private fun FoodDetailContent(
 
         Spacer(Modifier.height(16.dp))
 
-        // Macro breakdown
         Text(
             stringResource(R.string.food_detail_nutrition),
             style = MaterialTheme.typography.titleMedium,
@@ -195,7 +206,6 @@ private fun FoodDetailContent(
 
         Spacer(Modifier.height(16.dp))
 
-        // Serving adjuster
         Text(
             stringResource(R.string.food_detail_servings),
             style = MaterialTheme.typography.titleMedium,
@@ -203,11 +213,7 @@ private fun FoodDetailContent(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            stringResource(
-                R.string.food_detail_servings_label,
-                multiplier,
-                food.servingDescription
-            ),
+            stringResource(R.string.food_detail_servings_label, multiplier, food.servingDescription),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -234,13 +240,20 @@ private fun FoodDetailContent(
         Button(
             onClick = onAddToLog,
             modifier = Modifier.fillMaxWidth(),
+            enabled = !isSaving,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text(
-                stringResource(R.string.food_detail_add_to_log),
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+            if (isSaving) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.height(20.dp).width(20.dp)
+                )
+            } else {
+                val label = if (hasSlotContext && slotDisplayName != null)
+                    "Add to $slotDisplayName"
+                else stringResource(R.string.food_detail_add_to_log)
+                Text(label, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(vertical = 4.dp))
+            }
         }
 
         Spacer(Modifier.height(24.dp))
