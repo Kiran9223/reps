@@ -56,6 +56,7 @@ import java.math.RoundingMode
 @Composable
 fun FoodDetailScreen(
     onNavigateBack: () -> Unit = {},
+    onAddToPlan: ((foodId: Long, foodName: String, servings: Double) -> Unit)? = null,
     viewModel: FoodDetailViewModel = hiltViewModel()
 ) {
     val food by viewModel.food.collectAsStateWithLifecycle()
@@ -107,6 +108,10 @@ fun FoodDetailScreen(
                         scope.launch { snackbarHostState.showSnackbar(addedMsg) }
                     }
                 },
+                onAddToPlan = onAddToPlan?.let { callback ->
+                    { servings -> callback(food!!.id, food!!.name, servings) }
+                },
+                onNavigateBack = onNavigateBack,
                 modifier = Modifier.padding(innerPadding)
             )
         }
@@ -122,6 +127,8 @@ private fun FoodDetailContent(
     slotDisplayName: String?,
     onMultiplierChange: (Float) -> Unit,
     onAddToLog: () -> Unit,
+    onAddToPlan: ((servings: Double) -> Unit)? = null,
+    onNavigateBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val m = BigDecimal(multiplier.toDouble())
@@ -238,7 +245,14 @@ private fun FoodDetailContent(
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = onAddToLog,
+            onClick = {
+                if (onAddToPlan != null) {
+                    onAddToPlan(multiplier.toDouble())
+                    onNavigateBack()
+                } else {
+                    onAddToLog()
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isSaving,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -249,9 +263,11 @@ private fun FoodDetailContent(
                     modifier = Modifier.height(20.dp).width(20.dp)
                 )
             } else {
-                val label = if (hasSlotContext && slotDisplayName != null)
-                    "Add to $slotDisplayName"
-                else stringResource(R.string.food_detail_add_to_log)
+                val label = when {
+                    onAddToPlan != null -> stringResource(R.string.create_plan_add_food_to_plan)
+                    hasSlotContext && slotDisplayName != null -> "Add to $slotDisplayName"
+                    else -> stringResource(R.string.food_detail_add_to_log)
+                }
                 Text(label, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(vertical = 4.dp))
             }
         }

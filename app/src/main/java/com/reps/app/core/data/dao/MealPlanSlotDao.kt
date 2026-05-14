@@ -19,6 +19,9 @@ interface MealPlanSlotDao {
     @Update
     suspend fun update(slot: MealPlanSlotEntity)
 
+    @Query("SELECT * FROM meal_plan_slots WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): MealPlanSlotEntity?
+
     @Query("SELECT * FROM meal_plan_slots WHERE templateId = :templateId ORDER BY dayOfWeek, sortOrder ASC")
     fun getByTemplateId(templateId: Long): Flow<List<MealPlanSlotEntity>>
 

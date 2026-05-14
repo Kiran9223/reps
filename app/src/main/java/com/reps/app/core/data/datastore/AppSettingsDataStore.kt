@@ -22,10 +22,21 @@ class AppSettingsDataStore @Inject constructor(
         val IS_ONBOARDING_COMPLETE = booleanPreferencesKey("is_onboarding_complete")
         val WATER_DATE = stringPreferencesKey("water_date")
         val WATER_ML = intPreferencesKey("water_ml")
+        val ACTIVE_MEAL_PLAN_ID = androidx.datastore.preferences.core.longPreferencesKey("active_meal_plan_id")
+        val IS_MEAL_PLAN_SEEDED = booleanPreferencesKey("is_meal_plan_seeded")
+        val GROCERY_BOUGHT_KEYS = stringPreferencesKey("grocery_bought_keys")
     }
 
     val isDbSeeded: Flow<Boolean> = dataStore.data.map { it[Keys.IS_DB_SEEDED] ?: false }
     val isOnboardingComplete: Flow<Boolean> = dataStore.data.map { it[Keys.IS_ONBOARDING_COMPLETE] ?: false }
+    val isMealPlanSeeded: Flow<Boolean> = dataStore.data.map { it[Keys.IS_MEAL_PLAN_SEEDED] ?: false }
+    val activeMealPlanId: Flow<Long?> = dataStore.data.map { it[Keys.ACTIVE_MEAL_PLAN_ID] }
+    val groceryBoughtKeys: Flow<Set<String>> = dataStore.data.map { prefs ->
+        (prefs[Keys.GROCERY_BOUGHT_KEYS] ?: "")
+            .split(",")
+            .filter { it.isNotBlank() }
+            .toSet()
+    }
 
     fun getWaterMl(dateStr: String): Flow<Int> = dataStore.data.map { prefs ->
         if ((prefs[Keys.WATER_DATE] ?: "") == dateStr) prefs[Keys.WATER_ML] ?: 0 else 0
@@ -33,6 +44,20 @@ class AppSettingsDataStore @Inject constructor(
 
     suspend fun setDbSeeded(seeded: Boolean) = dataStore.edit { it[Keys.IS_DB_SEEDED] = seeded }
     suspend fun setOnboardingComplete(complete: Boolean) = dataStore.edit { it[Keys.IS_ONBOARDING_COMPLETE] = complete }
+    suspend fun setMealPlanSeeded(seeded: Boolean) = dataStore.edit { it[Keys.IS_MEAL_PLAN_SEEDED] = seeded }
+    suspend fun setActiveMealPlanId(id: Long) = dataStore.edit { it[Keys.ACTIVE_MEAL_PLAN_ID] = id }
+    suspend fun clearActiveMealPlanId() = dataStore.edit { it.remove(Keys.ACTIVE_MEAL_PLAN_ID) }
+
+    suspend fun toggleGroceryBought(key: String) {
+        dataStore.edit { prefs ->
+            val current = (prefs[Keys.GROCERY_BOUGHT_KEYS] ?: "")
+                .split(",")
+                .filter { it.isNotBlank() }
+                .toMutableSet()
+            if (key in current) current.remove(key) else current.add(key)
+            prefs[Keys.GROCERY_BOUGHT_KEYS] = current.joinToString(",")
+        }
+    }
 
     suspend fun addWater(dateStr: String, mlToAdd: Int) {
         dataStore.edit { prefs ->

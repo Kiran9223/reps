@@ -228,4 +228,66 @@
     <string name="meal_log_no_entries">No meals logged</string>
     <string name="meal_log_slot_header">%1$s · %2$d kcal</string>
     <string name="meal_log_add_food">Add Food</string>
+
+    <!-- More screen items -->
+    <string name="more_meal_plan">Meal Plan</string>
+    <string name="more_batch_cook">Batch Cook</string>
+
+    <!-- Meal Plan screen -->
+    <string name="screen_meal_plan">Meal Plan</string>
+    <string name="meal_plan_no_plan">No active meal plan</string>
+    <string name="meal_plan_switch_plan">Switch Plan</string>
+    <string name="meal_plan_edit">Edit</string>
+    <string name="meal_plan_done">Done</string>
+    <string name="meal_plan_switch_dialog_title">Switch Meal Plan</string>
+    <string name="meal_plan_switch_dialog_cancel">Cancel</string>
+    <string name="meal_plan_slot_empty">No foods</string>
+    <string name="meal_plan_slot_macros">P %1$.0fg  ·  C %2$.0fg  ·  F %3$.0fg</string>
+    <string name="meal_plan_serving">%1$.1f× serving</string>
+    <string name="meal_plan_avg_calories">Avg %1$d kcal / day</string>
+    <string name="meal_plan_avg_protein">Avg %1$.0fg protein / day</string>
+    <string name="meal_plan_clone">Clone Template</string>
+    <string name="meal_plan_cloned">Template cloned!</string>
+
+    <!-- Grocery List screen -->
+    <string name="screen_grocery_list">Grocery List</string>
+    <string name="grocery_no_plan">Set an active meal plan to generate your grocery list</string>
+    <string name="grocery_items_count">%1$d items · %2$d bought</string>
+    <string name="grocery_add_item">Add Item</string>
+    <string name="grocery_add_item_hint">Item name…</string>
+    <string name="grocery_share">Share List</string>
+    <string name="grocery_quantity">%1$.0f× %2$s</string>
+
+    <!-- Batch Cook screen -->
+    <string name="screen_batch_cook">Batch Cook</string>
+    <string name="batch_cook_no_plan">Set an active meal plan first</string>
+    <string name="batch_cook_sunday_label">Sunday Cook Session</string>
+    <string name="batch_cook_sunday_desc">Covers Monday – Wednesday meals</string>
+    <string name="batch_cook_wednesday_label">Wednesday Prep Session</string>
+    <string name="batch_cook_wednesday_desc">Covers Thursday – Sunday meals</string>
+    <string name="batch_cook_nothing_to_prep">Nothing to prep for these days</string>
+
+    <!-- Create / Edit Meal Plan -->
+    <string name="screen_create_meal_plan">Create Meal Plan</string>
+    <string name="screen_edit_meal_plan">Edit Meal Plan</string>
+    <string name="create_plan_name_label">Plan Name *</string>
+    <string name="create_plan_name_hint">e.g. My South Indian Plan</string>
+    <string name="create_plan_desc_label">Description (optional)</string>
+    <string name="create_plan_desc_hint">Brief description of this plan</string>
+    <string name="create_plan_cuisine_label">Cuisine Type</string>
+    <string name="create_plan_save">Save Plan</string>
+    <string name="create_plan_cancel">Cancel</string>
+    <string name="create_plan_name_error">Plan name is required</string>
+    <string name="create_plan_no_food_error">Add at least one food item to save</string>
+    <string name="create_plan_saved">Plan saved!</string>
+    <string name="create_plan_add_food">+ Add Food</string>
+    <string name="create_plan_add_food_to_plan">Add to Plan</string>
+    <string name="create_plan_remove_food">Remove</string>
+    <string name="create_plan_slot_empty">No foods added</string>
+    <string name="create_plan_serving">%1$.1f× %2$s</string>
+    <string name="create_plan_fab">Create Plan</string>
+
+    <!-- Switch dialog updates -->
+    <string name="meal_plan_edit_plan">Edit</string>
+    <string name="meal_plan_delete_plan">Delete</string>
 </resources>
