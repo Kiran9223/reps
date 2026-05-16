@@ -54,7 +54,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -181,6 +185,21 @@ fun AICoachScreen(
     }
 }
 
+private fun String.toMarkdownAnnotatedString(): AnnotatedString {
+    val boldPattern = Regex("""\*\*(.+?)\*\*""")
+    return buildAnnotatedString {
+        var lastEnd = 0
+        boldPattern.findAll(this@toMarkdownAnnotatedString).forEach { match ->
+            append(this@toMarkdownAnnotatedString.substring(lastEnd, match.range.first))
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(match.groupValues[1])
+            }
+            lastEnd = match.range.last + 1
+        }
+        append(this@toMarkdownAnnotatedString.substring(lastEnd))
+    }
+}
+
 @Composable
 private fun StarterPromptsSection(onPromptSelected: (String) -> Unit) {
     val prompts = listOf(
@@ -247,7 +266,7 @@ private fun AiBubble(text: String) {
             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
         ) {
             Text(
-                text = text,
+                text = text.toMarkdownAnnotatedString(),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface

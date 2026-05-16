@@ -52,6 +52,10 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -242,6 +246,7 @@ private fun DateNavigationHeader(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodayTab(
     state: DashboardUiState,
@@ -250,6 +255,11 @@ private fun TodayTab(
     onNavigateToProgress: () -> Unit,
     onRefreshInsight: () -> Unit
 ) {
+    PullToRefreshBox(
+        isRefreshing = state.isFetchingInsight,
+        onRefresh = onRefreshInsight,
+        modifier = Modifier.fillMaxSize()
+    ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             MacroRingSection(macros = state.macros, modifier = Modifier.padding(16.dp))
@@ -292,12 +302,22 @@ private fun TodayTab(
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
+    } // end PullToRefreshBox
 }
 
 @Composable
 private fun MacroRingSection(macros: DayMacros, modifier: Modifier = Modifier) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    val ringSpec = tween<Float>(durationMillis = 900, easing = FastOutSlowInEasing)
+    val animatedProtein by animateFloatAsState(macros.proteinProgress, ringSpec, label = "protein")
+    val animatedCarbs by animateFloatAsState(
+        macros.carbsProgress, tween(900, delayMillis = 80, easing = FastOutSlowInEasing), label = "carbs"
+    )
+    val animatedFat by animateFloatAsState(
+        macros.fatProgress, tween(900, delayMillis = 160, easing = FastOutSlowInEasing), label = "fat"
+    )
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -318,9 +338,9 @@ private fun MacroRingSection(macros: DayMacros, modifier: Modifier = Modifier) {
                 }
             }
 
-            drawRing(maxRadius, macros.proteinProgress, primaryColor)
-            drawRing(maxRadius - strokeWidth - gap, macros.carbsProgress, COLOR_CARBS)
-            drawRing(maxRadius - (strokeWidth + gap) * 2, macros.fatProgress, COLOR_FAT)
+            drawRing(maxRadius, animatedProtein, primaryColor)
+            drawRing(maxRadius - strokeWidth - gap, animatedCarbs, COLOR_CARBS)
+            drawRing(maxRadius - (strokeWidth + gap) * 2, animatedFat, COLOR_FAT)
         }
 
         Spacer(Modifier.width(16.dp))

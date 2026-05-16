@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -20,8 +22,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val usdaApiKey = project.findProperty("USDA_API_KEY")?.toString() ?: ""
-        val apiNinjasKey = project.findProperty("API_NINJAS_KEY")?.toString() ?: ""
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { localProperties.load(it) }
+        }
+        val usdaApiKey = localProperties.getProperty("USDA_API_KEY") ?: ""
+        val apiNinjasKey = localProperties.getProperty("API_NINJAS_KEY") ?: ""
         buildConfigField("String", "USDA_API_KEY", "\"$usdaApiKey\"")
         buildConfigField("String", "API_NINJAS_KEY", "\"$apiNinjasKey\"")
     }

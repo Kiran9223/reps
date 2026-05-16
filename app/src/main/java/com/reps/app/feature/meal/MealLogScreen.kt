@@ -24,6 +24,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -31,7 +36,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -60,6 +67,22 @@ fun MealLogScreen(
 ) {
     val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
     val dayLog by viewModel.dayLog.collectAsStateWithLifecycle()
+    val pendingDeleteId by viewModel.pendingDeleteId.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.undo)
+    val deletedMsg = stringResource(R.string.undo_delete_food)
+
+    LaunchedEffect(pendingDeleteId) {
+        if (pendingDeleteId == null) return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = deletedMsg,
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Short
+        )
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete()
+        else viewModel.commitDelete()
+    }
 
     Scaffold(
         topBar = {
@@ -68,6 +91,7 @@ fun MealLogScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -79,10 +103,17 @@ fun MealLogScreen(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-            MealLogContent(
-                dayLog = dayLog,
-                onDeleteEntry = viewModel::removeLogEntry
-            )
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = viewModel::onRefresh,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                MealLogContent(
+                    dayLog = dayLog,
+                    pendingDeleteId = pendingDeleteId,
+                    onDeleteEntry = viewModel::onSwipeToDelete
+                )
+            }
         }
     }
 }
@@ -119,10 +150,13 @@ private fun DateNavigationRow(
 }
 
 @Composable
-private fun MealLogContent(dayLog: DayLog, onDeleteEntry: (Long) -> Unit) {
+private fun MealLogContent(dayLog: DayLog, pendingDeleteId: Long?, onDeleteEntry: (Long) -> Unit) {
     val slotsWithEntries = MealSlot.entries
         .sortedBy { it.sortOrder }
-        .map { slot -> slot to dayLog.slotLog(slot) }
+        .map { slot ->
+            val log = dayLog.slotLog(slot)
+            slot to log.copy(entries = log.entries.filter { it.entryId != pendingDeleteId })
+        }
         .filter { (_, log) -> log.entries.isNotEmpty() }
 
     if (slotsWithEntries.isEmpty()) {

@@ -8,6 +8,7 @@ import com.reps.app.core.data.mapper.toEntity
 import com.reps.app.core.di.IoDispatcher
 import com.reps.app.core.domain.model.FoodItem
 import com.reps.app.core.domain.repository.FoodRepository
+import com.reps.app.core.network.api.ApiNinjasApiService
 import com.reps.app.core.network.api.OpenFoodFactsApiService
 import com.reps.app.core.network.api.UsdaApiService
 import kotlinx.coroutines.CoroutineDispatcher
@@ -24,26 +25,46 @@ class FoodRepositoryImpl @Inject constructor(
     private val foodItemDao: FoodItemDao,
     private val usdaApiService: UsdaApiService,
     private val offApiService: OpenFoodFactsApiService,
+    private val apiNinjasService: ApiNinjasApiService,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : FoodRepository {
 
     override fun searchFoods(query: String): Flow<List<FoodItem>> = flow {
-        val local = foodItemDao.searchImmediate(query)
+        val trimmed = query.trim()
+        val local = foodItemDao.searchImmediate(trimmed)
         emit(local.map { it.toDomainModel() })
 
-        if (query.length >= 2 && local.size < 3) {
-            runCatching {
-                val response = usdaApiService.searchFoods(
-                    query = query,
+        if (trimmed.length >= 3 && local.size < 10) {
+            // Use the first significant word to re-query Room after insert,
+            // since API responses may name items differently than the query
+            // (e.g. "whole grain bread" vs query "whole grains bread").
+            val searchWord = trimmed.split("\\s+".toRegex())
+                .firstOrNull { it.length >= 3 } ?: trimmed
+
+            val usdaResults = runCatching {
+                usdaApiService.searchFoods(
+                    query = trimmed,
                     apiKey = BuildConfig.USDA_API_KEY,
                     pageSize = 25,
-                    dataType = "Foundation,SR Legacy"
-                )
-                val entities = response.foods.map { it.toFoodItemEntity() }
-                if (entities.isNotEmpty()) {
-                    foodItemDao.insertAll(entities)
-                    val updated = foodItemDao.searchImmediate(query)
-                    emit(updated.map { it.toDomainModel() })
+                    dataType = listOf("Branded", "Foundation", "SR Legacy")
+                ).foods
+            }.getOrDefault(emptyList())
+
+            if (usdaResults.isNotEmpty()) {
+                foodItemDao.insertAll(usdaResults.map { it.toFoodItemEntity() })
+                emit(foodItemDao.searchImmediate(searchWord).map { it.toDomainModel() })
+            } else {
+                // USDA returned nothing — fall back to API Ninjas
+                runCatching {
+                    apiNinjasService.getNutrition(
+                        apiKey = BuildConfig.API_NINJAS_KEY,
+                        query = trimmed
+                    )
+                }.getOrNull()?.let { ninjasFoods ->
+                    if (ninjasFoods.isNotEmpty()) {
+                        foodItemDao.insertAll(ninjasFoods.map { it.toFoodItemEntity() })
+                        emit(foodItemDao.searchImmediate(searchWord).map { it.toDomainModel() })
+                    }
                 }
             }
         }

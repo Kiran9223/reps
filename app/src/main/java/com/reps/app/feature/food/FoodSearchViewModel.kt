@@ -53,7 +53,7 @@ class FoodSearchViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(_query.debounce(300L), _activeTab, _retryTrigger) { q, t, _ -> q to t }
+            combine(_query.debounce(600L), _activeTab, _retryTrigger) { q, t, _ -> q to t }
                 .collectLatest { (query, tab) -> loadFoods(query, tab) }
         }
     }

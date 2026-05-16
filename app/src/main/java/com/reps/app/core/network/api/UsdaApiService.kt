@@ -10,6 +10,6 @@ interface UsdaApiService {
         @Query("query") query: String,
         @Query("api_key") apiKey: String,
         @Query("pageSize") pageSize: Int,
-        @Query("dataType") dataType: String
+        @Query("dataType") dataType: List<String>
     ): UsdaSearchResponseDto
 }

@@ -66,6 +66,8 @@ import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
+import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.reps.app.R
@@ -232,6 +234,8 @@ private fun WeightChartCard(history: List<WeightCheckIn>, goalProgress: GoalProg
                         bottomAxis = HorizontalAxis.rememberBottom()
                     ),
                     modelProducer = modelProducer,
+                    scrollState = rememberVicoScrollState(),
+                    zoomState = rememberVicoZoomState(),
                     modifier = Modifier.fillMaxWidth().height(180.dp)
                 )
 

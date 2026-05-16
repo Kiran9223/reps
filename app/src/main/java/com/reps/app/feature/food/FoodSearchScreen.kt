@@ -5,6 +5,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +30,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,7 +50,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -70,6 +77,7 @@ fun FoodSearchScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
+    val isOnline = rememberIsOnline()
 
     Scaffold(
         topBar = {
@@ -92,6 +100,9 @@ fun FoodSearchScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
+            AnimatedVisibility(visible = !isOnline) {
+                OfflineBanner()
+            }
             if (state.slotDisplayName != null) {
                 Text(
                     text = stringResource(R.string.food_search_adding_to, state.slotDisplayName!!),
@@ -336,6 +347,49 @@ private fun ShimmerFoodCard() {
             )
         }
     }
+}
+
+@Composable
+private fun OfflineBanner() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            Icons.Filled.WifiOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            "Offline — showing cached results",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onErrorContainer
+        )
+    }
+}
+
+@Composable
+private fun rememberIsOnline(): Boolean {
+    val context = LocalContext.current
+    val cm = context.getSystemService(ConnectivityManager::class.java)
+    return produceState(initialValue = cm.isCurrentlyConnected()) {
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) { value = true }
+            override fun onLost(network: Network) { value = false }
+        }
+        cm.registerDefaultNetworkCallback(callback)
+        awaitDispose { cm.unregisterNetworkCallback(callback) }
+    }.value
+}
+
+private fun ConnectivityManager.isCurrentlyConnected(): Boolean {
+    val caps = getNetworkCapabilities(activeNetwork ?: return false) ?: return false
+    return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0A0A)

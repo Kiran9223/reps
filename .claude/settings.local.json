@@ -16,7 +16,8 @@
       "PowerShell(Head *)",
       "PowerShell(cmd /c \"dir /s /b `\"C:\\\\Users\\\\kiran\\\\.gradle\\\\caches\\\\8.9\\\\transforms\\\\14b12df280d6b7eff0c4a63cc9146c9d\\\\transformed\\\\com.patrykandpatrick.vico.compose`\"\" 2>&1 | Select-Object -First 20)",
       "PowerShell(cmd /c \"dir /s /b C:\\\\Users\\\\kiran\\\\.gradle\\\\caches\\\\modules-2\\\\files-2.1\\\\com.patrykandpatrick.vico\" 2>&1 | Select-Object -First 40)",
-      "Bash(./gradlew :app:compileDebugKotlin)"
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Bash(./gradlew :app:generateDebugBuildConfig)"
     ]
   }
 }

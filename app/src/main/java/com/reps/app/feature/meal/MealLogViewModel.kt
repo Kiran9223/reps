@@ -6,6 +6,7 @@ import com.reps.app.core.domain.model.DayLog
 import com.reps.app.core.domain.repository.MealLogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,20 @@ class MealLogViewModel @Inject constructor(
         .flatMapLatest { date -> mealLogRepository.getDayLog(date.toString()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), DayLog(LocalDate.now().toString()))
 
+    private val _pendingDeleteId = MutableStateFlow<Long?>(null)
+    val pendingDeleteId: StateFlow<Long?> = _pendingDeleteId.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun onRefresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            delay(400) // data is already live via Room; brief spinner for feedback
+            _isRefreshing.value = false
+        }
+    }
+
     fun onPreviousDay() { _selectedDate.value = _selectedDate.value.minusDays(1) }
 
     fun onNextDay() {
@@ -37,8 +52,18 @@ class MealLogViewModel @Inject constructor(
         }
     }
 
-    fun removeLogEntry(entryId: Long) {
-        viewModelScope.launch { mealLogRepository.removeFoodFromLog(entryId) }
+    fun onSwipeToDelete(entryId: Long) {
+        _pendingDeleteId.value = entryId
+    }
+
+    fun undoDelete() {
+        _pendingDeleteId.value = null
+    }
+
+    fun commitDelete() {
+        val id = _pendingDeleteId.value ?: return
+        _pendingDeleteId.value = null
+        viewModelScope.launch { mealLogRepository.removeFoodFromLog(id) }
     }
 
     fun getSelectedDateStr(): String = _selectedDate.value.toString()
