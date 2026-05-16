@@ -131,7 +131,7 @@ fun WorkoutLogScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                items(state.templates, key = { it.id }) { template ->
+                items(state.templates, key = { "template_${it.id}" }) { template ->
                     TemplateCard(
                         template = template,
                         isStarting = state.isStarting,
@@ -159,7 +159,7 @@ fun WorkoutLogScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                items(state.recentWorkouts, key = { it.id }) { summary ->
+                items(state.recentWorkouts, key = { "workout_${it.id}" }) { summary ->
                     RecentWorkoutCard(summary = summary)
                 }
             }
