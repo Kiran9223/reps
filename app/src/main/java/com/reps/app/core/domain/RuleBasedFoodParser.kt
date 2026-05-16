@@ -43,6 +43,12 @@ class RuleBasedFoodParser @Inject constructor(
         return result
     }
 
+    suspend fun lookupByName(name: String, quantity: Double): ParsedFoodEntry? {
+        val matches = foodItemDao.searchImmediate(name)
+        val best = matches.firstOrNull() ?: return null
+        return ParsedFoodEntry(food = best.toDomainModel(), quantity = quantity)
+    }
+
     private fun extractQuantity(tokens: List<String>): Pair<Double, List<String>> {
         if (tokens.isEmpty()) return 1.0 to tokens
         val first = tokens.first().lowercase()

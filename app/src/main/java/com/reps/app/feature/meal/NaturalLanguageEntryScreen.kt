@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -131,24 +132,24 @@ fun NaturalLanguageEntryScreen(
             Spacer(Modifier.height(16.dp))
 
             when {
-                state.error == "no_matches" -> {
-                    Text(
-                        stringResource(R.string.nl_not_found),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(onClick = onNavigateToSearch, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.nl_search_manually))
-                    }
-                }
-
                 state.parsedEntries.isNotEmpty() -> {
-                    Text(
-                        stringResource(R.string.nl_found_prefix),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.nl_found_prefix),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (state.isParsing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                     LazyColumn(
                         modifier = Modifier.weight(1f),
@@ -162,7 +163,7 @@ fun NaturalLanguageEntryScreen(
                     Button(
                         onClick = viewModel::onLogIt,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !state.isSaving,
+                        enabled = !state.isParsing && !state.isSaving,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         if (state.isSaving) {
@@ -173,6 +174,18 @@ fun NaturalLanguageEntryScreen(
                         } else {
                             Text(stringResource(R.string.nl_log_it), color = MaterialTheme.colorScheme.onPrimary)
                         }
+                    }
+                }
+
+                state.error == "no_matches" -> {
+                    Text(
+                        stringResource(R.string.nl_not_found),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onNavigateToSearch, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.nl_search_manually))
                     }
                 }
 

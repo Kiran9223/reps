@@ -345,4 +345,128 @@
     <string name="workout_template_delete_title">Delete Template?</string>
     <string name="workout_template_delete_confirm">"%1$s" will be permanently deleted.</string>
     <string name="workout_pick_exercise_title">Pick Exercise</string>
+
+    <!-- Phase 6: Progress screen -->
+    <string name="progress_weight_chart_title">Weight History</string>
+    <string name="progress_no_weight_data">Log your first weight check-in to see your chart</string>
+    <string name="progress_chart_start">Start: %1$.1f kg</string>
+    <string name="progress_chart_current">Now: %1$.1f kg</string>
+    <string name="progress_chart_target">Goal: %1$.1f kg</string>
+    <string name="progress_projected_weeks">~%1$d weeks to goal</string>
+    <string name="progress_goal_reached">Goal reached! 🎉</string>
+    <string name="progress_not_enough_data">Log more check-ins for a projection</string>
+
+    <!-- Streaks -->
+    <string name="streak_protein_label">Protein Streak</string>
+    <string name="streak_workout_label">Workout Streak</string>
+    <string name="streak_water_label">Water Streak</string>
+    <string name="streak_days_format">%1$d days</string>
+    <string name="streak_section_heading">Streaks</string>
+
+    <!-- Weekly stats -->
+    <string name="weekly_stats_heading">This Week</string>
+    <string name="weekly_stat_avg_calories">Avg Calories</string>
+    <string name="weekly_stat_avg_calories_value">%1$d kcal</string>
+    <string name="weekly_stat_avg_protein">Avg Protein</string>
+    <string name="weekly_stat_avg_protein_value">%1$.0f g</string>
+    <string name="weekly_stat_workouts">Workouts</string>
+    <string name="weekly_stat_workouts_value">%1$d / %2$d</string>
+    <string name="weekly_stat_protein_goal">Protein Goals</string>
+    <string name="weekly_stat_protein_goal_value">%1$d / 7 days</string>
+
+    <!-- Weight check-in bottom sheet -->
+    <string name="checkin_title">Log Weight</string>
+    <string name="checkin_date_label">Date</string>
+    <string name="checkin_weight_label">Weight (kg)</string>
+    <string name="checkin_weight_placeholder">e.g. 78.5</string>
+    <string name="checkin_notes_label">Notes (optional)</string>
+    <string name="checkin_notes_placeholder">e.g. after morning run</string>
+    <string name="checkin_save">Save Check-in</string>
+    <string name="checkin_delta_gained">+%1$.1f kg from last check-in</string>
+    <string name="checkin_delta_lost">%1$.1f kg from last check-in</string>
+    <string name="checkin_first">First check-in</string>
+    <string name="checkin_weight_error">Enter a valid weight</string>
+    <string name="checkin_fab_desc">Log weight check-in</string>
+
+    <!-- Body measurements section (collapsible in Progress) -->
+    <string name="measurements_section_title">Body Measurements</string>
+    <string name="measurements_expand">Show</string>
+    <string name="measurements_collapse">Hide</string>
+    <string name="measurements_log_new">Log New</string>
+    <string name="measurements_no_data">No measurements logged yet</string>
+    <string name="measurements_history_date">%1$s</string>
+
+    <!-- Body Measurements screen -->
+    <string name="screen_body_measurements">Body Measurements</string>
+    <string name="measurements_form_heading">New Entry</string>
+    <string name="measurements_waist">Waist (cm)</string>
+    <string name="measurements_chest">Chest (cm)</string>
+    <string name="measurements_arms">Arms (cm)</string>
+    <string name="measurements_thighs">Thighs (cm)</string>
+    <string name="measurements_notes">Notes (optional)</string>
+    <string name="measurements_save">Save Measurements</string>
+    <string name="measurements_history_heading">History</string>
+    <string name="measurements_motivational">Keep going! Your hard work is paying off. 💪</string>
+    <string name="measurements_delta_decrease">↓ %1$.1f cm</string>
+    <string name="measurements_delta_increase">↑ %1$.1f cm</string>
+    <string name="measurements_cm_format">%1$.1f cm</string>
+    <string name="measurements_save_error">Enter at least one measurement</string>
+
+    <!-- Phase 7: AI Coach -->
+    <string name="ai_coach_input_hint">Ask your coach anything…</string>
+    <string name="ai_coach_send">Send message</string>
+    <string name="ai_coach_clear">Clear Chat</string>
+    <string name="ai_coach_clear_confirm">All chat history will be deleted. This cannot be undone.</string>
+    <string name="ai_coach_welcome">Hi! I\'m Reps, your AI fitness and nutrition coach. Ask me anything about your workouts, meals, or goals.</string>
+    <string name="ai_coach_unavailable">AI Coach is not available on this device. Make sure the Gemma model is installed.</string>
+
+    <!-- Phase 7: Dashboard AI -->
+    <string name="dashboard_refresh_insight">Refresh insight</string>
+
+    <!-- Phase 7: Meal slot suggestion -->
+    <string name="slot_suggest_meal">Suggest a Meal</string>
+    <string name="slot_suggestion_title">AI Suggestion</string>
+    <string name="slot_suggestion_reason_format">%1$s · %2$.1f servings — %3$s</string>
+    <string name="slot_suggestion_add">Add to Log</string>
+
+    <!-- Phase 7: Shoulder Safety -->
+    <string name="shoulder_warning_title">Shoulder Safety Check</string>
+    <string name="shoulder_warning_desc">This workout contains exercises that may stress your shoulder. Here are some safer alternatives:</string>
+    <string name="shoulder_alternatives_title">Suggested Alternatives</string>
+    <string name="shoulder_continue_anyway">Continue Anyway</string>
+    <string name="shoulder_fetching">Finding shoulder-safe alternatives…</string>
+
+    <!-- Settings screen -->
+    <string name="settings_section_profile">Profile</string>
+    <string name="settings_section_body">Body Stats</string>
+    <string name="settings_section_training">Training</string>
+    <string name="settings_section_preferences">Dietary Preferences</string>
+    <string name="settings_save">Save Changes</string>
+    <string name="settings_saved">Profile updated!</string>
+
+    <!-- Goal Progress card on Dashboard -->
+    <string name="goal_progress_title">Weight Goal</string>
+    <string name="goal_progress_current_format">%1$.1f kg</string>
+    <string name="goal_progress_target_format">Goal: %1$.1f kg</string>
+    <string name="goal_progress_remaining">%1$.1f kg to go</string>
+    <string name="goal_progress_weeks">~%1$d weeks</string>
+    <string name="goal_progress_achieved">Goal achieved!</string>
+    <string name="goal_progress_no_data">Log a weight check-in</string>
+    <string name="goal_progress_track">Track Progress</string>
+
+    <!-- Undo delete -->
+    <string name="undo">Undo</string>
+    <string name="undo_delete_food">Food removed</string>
+
+    <!-- Retryable errors -->
+    <string name="retry">Retry</string>
+
+    <!-- AI Coach starter prompts -->
+    <string name="ai_starter_protein">What should I eat to hit my protein goal today?</string>
+    <string name="ai_starter_workout">Suggest a shoulder-safe push workout</string>
+    <string name="ai_starter_week">How am I doing this week?</string>
+    <string name="ai_starter_meal">What\'s a high-protein meal I can make quickly?</string>
+
+    <!-- Progress insight card -->
+    <string name="progress_insight_title">Progress Insight</string>
 </resources>

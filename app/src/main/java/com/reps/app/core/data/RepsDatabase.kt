@@ -4,6 +4,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.reps.app.core.data.converter.Converters
+import com.reps.app.core.data.dao.AIChatMessageDao
+import com.reps.app.core.data.dao.BodyMeasurementDao
 import com.reps.app.core.data.dao.ExerciseDao
 import com.reps.app.core.data.dao.FoodItemDao
 import com.reps.app.core.data.dao.MealLogDao
@@ -15,6 +17,8 @@ import com.reps.app.core.data.dao.WorkoutLogDao
 import com.reps.app.core.data.dao.WorkoutSetDao
 import com.reps.app.core.data.dao.WorkoutTemplateDao
 import com.reps.app.core.data.dao.WorkoutTemplateExerciseDao
+import com.reps.app.core.data.entity.AIChatMessageEntity
+import com.reps.app.core.data.entity.BodyMeasurementEntity
 import com.reps.app.core.data.entity.ExerciseEntity
 import com.reps.app.core.data.entity.FoodItemEntity
 import com.reps.app.core.data.entity.MealLogEntity
@@ -39,9 +43,11 @@ import com.reps.app.core.data.entity.WorkoutTemplateExerciseEntity
         WorkoutSetEntity::class,
         WeightLogEntity::class,
         MealPlanTemplateEntity::class,
-        MealPlanSlotEntity::class
+        MealPlanSlotEntity::class,
+        BodyMeasurementEntity::class,
+        AIChatMessageEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -57,4 +63,6 @@ abstract class RepsDatabase : RoomDatabase() {
     abstract fun weightLogDao(): WeightLogDao
     abstract fun mealPlanTemplateDao(): MealPlanTemplateDao
     abstract fun mealPlanSlotDao(): MealPlanSlotDao
+    abstract fun bodyMeasurementDao(): BodyMeasurementDao
+    abstract fun aiChatMessageDao(): AIChatMessageDao
 }

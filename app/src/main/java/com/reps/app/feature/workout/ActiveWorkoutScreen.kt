@@ -30,15 +30,19 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +50,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.ai.ExerciseAlternative
 import com.reps.app.core.domain.model.CompletedSet
 import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.SessionExercise
@@ -66,6 +73,19 @@ fun ActiveWorkoutScreen(
     viewModel: ActiveWorkoutViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    state.shoulderWarning?.let { warning ->
+        ModalBottomSheet(
+            onDismissRequest = viewModel::dismissShoulderWarning,
+            sheetState = sheetState
+        ) {
+            ShoulderWarningSheet(
+                warning = warning,
+                onDismiss = viewModel::dismissShoulderWarning
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -229,6 +249,7 @@ private fun ExerciseSetCard(
 private fun SetRow(set: CompletedSet, onComplete: (reps: Int?, weightKg: Double?) -> Unit) {
     var repsText by remember(set.id) { mutableStateOf(set.reps?.toString() ?: "") }
     var weightText by remember(set.id) { mutableStateOf(set.weightKg?.toString() ?: "") }
+    val hapticFeedback = LocalHapticFeedback.current
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -269,12 +290,104 @@ private fun SetRow(set: CompletedSet, onComplete: (reps: Int?, weightKg: Double?
         } else {
             FilledTonalButton(
                 onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     onComplete(repsText.toIntOrNull(), weightText.toDoubleOrNull())
                 },
                 modifier = Modifier.size(40.dp),
                 contentPadding = PaddingValues(0.dp)
             ) {
                 Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.workout_complete_set), modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShoulderWarningSheet(
+    warning: ShoulderWarning,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.shoulder_warning_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.error
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.shoulder_warning_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = warning.exerciseName,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.height(16.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(12.dp))
+        if (warning.isFetching) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                Text(
+                    stringResource(R.string.shoulder_fetching),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else if (warning.alternatives.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.shoulder_alternatives_title),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(8.dp))
+            warning.alternatives.forEach { alt ->
+                AlternativeRow(alternative = alt)
+                Spacer(Modifier.height(6.dp))
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        OutlinedButton(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.shoulder_continue_anyway))
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun AlternativeRow(alternative: ExerciseAlternative) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = alternative.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (alternative.reason.isNotBlank()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = alternative.reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

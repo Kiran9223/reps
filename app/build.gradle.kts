@@ -108,6 +108,12 @@ dependencies {
     // ML Kit Barcode
     implementation(libs.mlkit.barcode)
 
+    // Vico charts
+    implementation(libs.vico.compose.m3)
+
+    // MediaPipe LLM Inference (on-device AI)
+    implementation("com.google.mediapipe:tasks-genai:0.10.27")
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

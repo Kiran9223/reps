@@ -49,10 +49,11 @@ class FoodSearchViewModel @Inject constructor(
 
     private val _query = MutableStateFlow("")
     private val _activeTab = MutableStateFlow(FoodTab.ALL)
+    private val _retryTrigger = MutableStateFlow(0)
 
     init {
         viewModelScope.launch {
-            combine(_query.debounce(300L), _activeTab) { q, t -> q to t }
+            combine(_query.debounce(300L), _activeTab, _retryTrigger) { q, t, _ -> q to t }
                 .collectLatest { (query, tab) -> loadFoods(query, tab) }
         }
     }
@@ -66,6 +67,8 @@ class FoodSearchViewModel @Inject constructor(
         _activeTab.value = tab
         _uiState.update { it.copy(activeTab = tab) }
     }
+
+    fun retry() { _retryTrigger.value++ }
 
     private suspend fun loadFoods(query: String, tab: FoodTab) {
         _uiState.update { it.copy(isLoading = true, error = null) }

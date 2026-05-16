@@ -20,12 +20,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +41,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
@@ -47,8 +55,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -63,8 +75,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.ai.AiMealSuggestion
 import com.reps.app.core.domain.model.DayLog
 import com.reps.app.core.domain.model.DayMacros
+import com.reps.app.core.domain.model.GoalProgress
 import com.reps.app.core.domain.model.LoggedFood
 import com.reps.app.core.domain.model.MealSlot
 import com.reps.app.core.domain.model.MealSlotLog
@@ -82,10 +96,33 @@ fun DashboardScreen(
     onNavigateToFoodSearch: (date: String, slot: String) -> Unit = { _, _ -> },
     onNavigateToBarcode: (date: String, slot: String) -> Unit = { _, _ -> },
     onNavigateToNaturalLanguage: (date: String, slot: String) -> Unit = { _, _ -> },
+    onNavigateToProgress: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val today = LocalDate.now()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val hapticFeedback = LocalHapticFeedback.current
+    val undoLabel = stringResource(R.string.undo)
+    val deletedMsg = stringResource(R.string.undo_delete_food)
+
+    // Haptic feedback when protein goal is reached
+    val proteinGoalReached = state.macros.proteinProgress >= 1f
+    LaunchedEffect(proteinGoalReached) {
+        if (proteinGoalReached) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+
+    // Undo snackbar for swipe-to-delete
+    LaunchedEffect(state.pendingDeleteEntryId) {
+        if (state.pendingDeleteEntryId == null) return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = deletedMsg,
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Short
+        )
+        if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete()
+        else viewModel.commitDelete()
+    }
 
     Scaffold(
         topBar = {
@@ -94,6 +131,7 @@ fun DashboardScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -126,7 +164,9 @@ fun DashboardScreen(
                 DashboardTab.TODAY -> TodayTab(
                     state = state,
                     onSlotClick = viewModel::openSlotSheet,
-                    onAddWater = viewModel::addWater
+                    onAddWater = viewModel::addWater,
+                    onNavigateToProgress = onNavigateToProgress,
+                    onRefreshInsight = viewModel::requestInsight
                 )
                 DashboardTab.PROGRESS -> ProgressTab(state = state)
             }
@@ -144,6 +184,8 @@ fun DashboardScreen(
             MealSlotSheet(
                 slot = slot,
                 slotLog = slotLog,
+                suggestion = state.mealSuggestion,
+                isFetchingSuggestion = state.isFetchingSuggestion,
                 onSearchFood = {
                     viewModel.closeSlotSheet()
                     onNavigateToFoodSearch(viewModel.getSelectedDateStr(), slot.name)
@@ -156,7 +198,9 @@ fun DashboardScreen(
                     viewModel.closeSlotSheet()
                     onNavigateToNaturalLanguage(viewModel.getSelectedDateStr(), slot.name)
                 },
-                onDeleteEntry = viewModel::removeLogEntry
+                onDeleteEntry = viewModel::onSwipeToDelete,
+                onSuggestMeal = viewModel::requestMealSuggestion,
+                onAddSuggestion = viewModel::addSuggestedMealToLog
             )
         }
     }
@@ -202,7 +246,9 @@ private fun DateNavigationHeader(
 private fun TodayTab(
     state: DashboardUiState,
     onSlotClick: (MealSlot) -> Unit,
-    onAddWater: () -> Unit
+    onAddWater: () -> Unit,
+    onNavigateToProgress: () -> Unit,
+    onRefreshInsight: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
@@ -218,6 +264,16 @@ private fun TodayTab(
             )
         }
         item { Spacer(Modifier.height(12.dp)) }
+        if (state.goalProgress != null) {
+            item {
+                GoalProgressCard(
+                    goalProgress = state.goalProgress,
+                    onTrackProgress = onNavigateToProgress,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+        }
         items(MealSlot.entries.sortedBy { it.sortOrder }) { slot ->
             SlotCard(
                 slot = slot,
@@ -227,7 +283,12 @@ private fun TodayTab(
             )
         }
         item {
-            InsightCard(modifier = Modifier.padding(16.dp))
+            InsightCard(
+                insight = state.dailyInsight,
+                isFetching = state.isFetchingInsight,
+                onRefresh = onRefreshInsight,
+                modifier = Modifier.padding(16.dp)
+            )
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -427,23 +488,55 @@ private fun SlotCard(
 }
 
 @Composable
-private fun InsightCard(modifier: Modifier = Modifier) {
+private fun InsightCard(
+    insight: String?,
+    isFetching: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                stringResource(R.string.dashboard_insight_title),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(
+                        Icons.Filled.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        stringResource(R.string.dashboard_insight_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (isFetching) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    IconButton(onClick = onRefresh, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Filled.Refresh,
+                            contentDescription = stringResource(R.string.dashboard_refresh_insight),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(4.dp))
             Text(
-                stringResource(R.string.dashboard_insight_placeholder),
+                text = insight ?: stringResource(R.string.dashboard_insight_placeholder),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (insight != null) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -553,10 +646,14 @@ private fun WeekDayRow(dayLog: DayLog, modifier: Modifier = Modifier) {
 private fun MealSlotSheet(
     slot: MealSlot,
     slotLog: MealSlotLog,
+    suggestion: AiMealSuggestion?,
+    isFetchingSuggestion: Boolean,
     onSearchFood: () -> Unit,
     onScanBarcode: () -> Unit,
     onNaturalLanguage: () -> Unit,
-    onDeleteEntry: (Long) -> Unit
+    onDeleteEntry: (Long) -> Unit,
+    onSuggestMeal: () -> Unit,
+    onAddSuggestion: () -> Unit
 ) {
     Column(modifier = Modifier.padding(bottom = 32.dp)) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -597,6 +694,46 @@ private fun MealSlotSheet(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(vertical = 8.dp))
 
+        // AI Meal suggestion card
+        if (suggestion != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(14.dp))
+                        Text(stringResource(R.string.slot_suggestion_title),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary)
+                    }
+                    Text(
+                        stringResource(R.string.slot_suggestion_reason_format,
+                            suggestion.foodName, suggestion.servings, suggestion.reason),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = onAddSuggestion,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Text(
+                            stringResource(R.string.slot_suggestion_add),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondary
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -627,6 +764,19 @@ private fun MealSlotSheet(
                     Spacer(Modifier.width(4.dp))
                     Text(stringResource(R.string.slot_add_food_nl), style = MaterialTheme.typography.labelMedium)
                 }
+            }
+            OutlinedButton(
+                onClick = onSuggestMeal,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isFetchingSuggestion
+            ) {
+                if (isFetchingSuggestion) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.slot_suggest_meal), style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -684,6 +834,85 @@ private fun SwipeToDeleteEntry(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GoalProgressCard(
+    goalProgress: GoalProgress,
+    onTrackProgress: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val goalColor = Color(0xFF4CAF50)
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.goal_progress_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = onTrackProgress, modifier = Modifier.height(28.dp)) {
+                    Text(
+                        stringResource(R.string.goal_progress_track),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    stringResource(R.string.goal_progress_current_format, goalProgress.currentWeightKg),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    stringResource(R.string.goal_progress_target_format, goalProgress.targetWeightKg),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = { goalProgress.progressFraction },
+                modifier = Modifier.fillMaxWidth().height(6.dp),
+                color = goalColor,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    if (goalProgress.isGoalReached) stringResource(R.string.goal_progress_achieved)
+                    else stringResource(R.string.goal_progress_remaining, goalProgress.kgRemaining),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (goalProgress.isGoalReached) goalColor else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                goalProgress.estimatedWeeksToGoal?.let { weeks ->
+                    Text(
+                        stringResource(R.string.goal_progress_weeks, weeks),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

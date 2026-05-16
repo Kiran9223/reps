@@ -41,6 +41,7 @@ sealed class Screen(val route: String) {
         fun createRoute(pickMode: Boolean = false) = "exercise_library?pickMode=$pickMode"
     }
     object Progress : Screen("progress")
+    object BodyMeasurements : Screen("body_measurements")
     object GroceryList : Screen("grocery_list")
     object MealPlan : Screen("meal_plan")
     object BatchCook : Screen("batch_cook")

@@ -27,6 +27,8 @@ class AppSettingsDataStore @Inject constructor(
         val GROCERY_BOUGHT_KEYS = stringPreferencesKey("grocery_bought_keys")
         val IS_EXERCISE_SEEDED = booleanPreferencesKey("is_exercise_seeded")
         val IS_SHOULDER_SAFE_ONLY = booleanPreferencesKey("is_shoulder_safe_only")
+        val DAILY_INSIGHT_DATE = stringPreferencesKey("daily_insight_date")
+        val DAILY_INSIGHT_TEXT = stringPreferencesKey("daily_insight_text")
     }
 
     val isDbSeeded: Flow<Boolean> = dataStore.data.map { it[Keys.IS_DB_SEEDED] ?: false }
@@ -40,6 +42,11 @@ class AppSettingsDataStore @Inject constructor(
             .split(",")
             .filter { it.isNotBlank() }
             .toSet()
+    }
+
+    val dailyInsight: Flow<String?> = dataStore.data.map { prefs ->
+        val today = java.time.LocalDate.now().toString()
+        if ((prefs[Keys.DAILY_INSIGHT_DATE] ?: "") == today) prefs[Keys.DAILY_INSIGHT_TEXT] else null
     }
 
     fun getWaterMl(dateStr: String): Flow<Int> = dataStore.data.map { prefs ->
@@ -62,6 +69,13 @@ class AppSettingsDataStore @Inject constructor(
                 .toMutableSet()
             if (key in current) current.remove(key) else current.add(key)
             prefs[Keys.GROCERY_BOUGHT_KEYS] = current.joinToString(",")
+        }
+    }
+
+    suspend fun saveDailyInsight(text: String) {
+        dataStore.edit { prefs ->
+            prefs[Keys.DAILY_INSIGHT_DATE] = java.time.LocalDate.now().toString()
+            prefs[Keys.DAILY_INSIGHT_TEXT] = text
         }
     }
 

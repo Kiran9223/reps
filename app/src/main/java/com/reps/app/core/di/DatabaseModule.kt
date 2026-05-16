@@ -2,7 +2,11 @@ package com.reps.app.core.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.reps.app.core.data.RepsDatabase
+import com.reps.app.core.data.dao.AIChatMessageDao
+import com.reps.app.core.data.dao.BodyMeasurementDao
 import com.reps.app.core.data.dao.ExerciseDao
 import com.reps.app.core.data.dao.FoodItemDao
 import com.reps.app.core.data.dao.MealLogDao
@@ -21,6 +25,42 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS `ai_chat_messages` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `content` TEXT NOT NULL,
+                `isFromUser` INTEGER NOT NULL,
+                `timestamp` INTEGER NOT NULL
+            )"""
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_ai_chat_messages_timestamp` ON `ai_chat_messages` (`timestamp`)"
+        )
+    }
+}
+
+private val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS `body_measurements` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `date` INTEGER NOT NULL,
+                `waistCm` REAL,
+                `chestCm` REAL,
+                `armsCm` REAL,
+                `thighsCm` REAL,
+                `notes` TEXT,
+                `createdAt` INTEGER NOT NULL
+            )"""
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_body_measurements_date` ON `body_measurements` (`date`)"
+        )
+    }
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -28,7 +68,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideRepsDatabase(@ApplicationContext context: Context): RepsDatabase =
-        Room.databaseBuilder(context, RepsDatabase::class.java, "reps.db").build()
+        Room.databaseBuilder(context, RepsDatabase::class.java, "reps.db")
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .build()
 
     @Provides fun provideFoodItemDao(db: RepsDatabase): FoodItemDao = db.foodItemDao()
     @Provides fun provideMealLogDao(db: RepsDatabase): MealLogDao = db.mealLogDao()
@@ -41,4 +83,6 @@ object DatabaseModule {
     @Provides fun provideWeightLogDao(db: RepsDatabase): WeightLogDao = db.weightLogDao()
     @Provides fun provideMealPlanTemplateDao(db: RepsDatabase): MealPlanTemplateDao = db.mealPlanTemplateDao()
     @Provides fun provideMealPlanSlotDao(db: RepsDatabase): MealPlanSlotDao = db.mealPlanSlotDao()
+    @Provides fun provideBodyMeasurementDao(db: RepsDatabase): BodyMeasurementDao = db.bodyMeasurementDao()
+    @Provides fun provideAIChatMessageDao(db: RepsDatabase): AIChatMessageDao = db.aiChatMessageDao()
 }

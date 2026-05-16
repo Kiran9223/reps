@@ -3,11 +3,15 @@ package com.reps.app
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.reps.app.core.data.worker.DailyInsightWorker
 import com.reps.app.core.data.worker.SeedDatabaseWorker
 import com.reps.app.core.data.worker.WgerSeedWorker
+import java.util.concurrent.TimeUnit
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -52,6 +56,11 @@ RepsApplication : Application(), Configuration.Provider {
             WgerSeedWorker.WORK_NAME,
             ExistingWorkPolicy.KEEP,
             OneTimeWorkRequestBuilder<WgerSeedWorker>().build()
+        )
+        wm.enqueueUniquePeriodicWork(
+            DailyInsightWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<DailyInsightWorker>(1, TimeUnit.DAYS).build()
         )
     }
 }

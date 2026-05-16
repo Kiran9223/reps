@@ -3,6 +3,7 @@ package com.reps.app.feature.meal
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reps.app.ai.AIRepository
 import com.reps.app.core.domain.ParsedFoodEntry
 import com.reps.app.core.domain.RuleBasedFoodParser
 import com.reps.app.core.domain.model.MealSlot
@@ -28,6 +29,7 @@ data class NlEntryUiState(
 class NaturalLanguageEntryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val parser: RuleBasedFoodParser,
+    private val aiRepository: AIRepository,
     private val mealLogRepository: MealLogRepository
 ) : ViewModel() {
 
@@ -46,7 +48,25 @@ class NaturalLanguageEntryViewModel @Inject constructor(
         if (input.isBlank()) return
         viewModelScope.launch {
             _uiState.update { it.copy(isParsing = true, error = null, parsedEntries = emptyList()) }
-            val entries = parser.parse(input)
+
+            val entries = mutableListOf<ParsedFoodEntry>()
+
+            // Try AI parse first — emit partial results as each token resolves
+            aiRepository.parseNaturalLanguageMeal(input)
+                .onSuccess { tokens ->
+                    for (token in tokens) {
+                        parser.lookupByName(token.name, token.quantity)?.let { entry ->
+                            entries.add(entry)
+                            _uiState.update { it.copy(parsedEntries = entries.toList()) }
+                        }
+                    }
+                }
+
+            // Fall back to rule-based if AI failed or returned no DB matches
+            if (entries.isEmpty()) {
+                entries.addAll(parser.parse(input))
+            }
+
             _uiState.update {
                 it.copy(
                     isParsing = false,

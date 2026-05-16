@@ -24,6 +24,7 @@ import com.reps.app.feature.meal.MealLogScreen
 import com.reps.app.feature.meal.MealPlanScreen
 import com.reps.app.feature.meal.NaturalLanguageEntryScreen
 import com.reps.app.feature.more.MoreScreen
+import com.reps.app.feature.progress.BodyMeasurementsScreen
 import com.reps.app.feature.progress.ProgressScreen
 import com.reps.app.feature.settings.SettingsScreen
 import com.reps.app.feature.workout.ActiveWorkoutScreen
@@ -51,7 +52,8 @@ fun RepsNavGraph(
                 },
                 onNavigateToNaturalLanguage = { date, slot ->
                     navController.navigate(Screen.NaturalLanguageEntry.createRoute(date, slot))
-                }
+                },
+                onNavigateToProgress = { navController.navigate(Screen.Progress.route) }
             )
         }
 
@@ -129,7 +131,17 @@ fun RepsNavGraph(
             )
         }
 
-        composable(Screen.Progress.route) { ProgressScreen() }
+        composable(Screen.Progress.route) {
+            ProgressScreen(
+                onNavigateToBodyMeasurements = {
+                    navController.navigate(Screen.BodyMeasurements.route)
+                }
+            )
+        }
+
+        composable(Screen.BodyMeasurements.route) {
+            BodyMeasurementsScreen(onNavigateBack = { navController.popBackStack() })
+        }
 
         composable(Screen.More.route) {
             MoreScreen(
@@ -293,7 +305,11 @@ fun RepsNavGraph(
             GroceryListScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        composable(Screen.Settings.route) { SettingsScreen() }
-        composable(Screen.AICoach.route) { AICoachScreen() }
+        composable(Screen.Settings.route) {
+            SettingsScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.AICoach.route) {
+            AICoachScreen(onNavigateBack = { navController.popBackStack() })
+        }
     }
 }
