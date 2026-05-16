@@ -290,4 +290,59 @@
     <!-- Switch dialog updates -->
     <string name="meal_plan_edit_plan">Edit</string>
     <string name="meal_plan_delete_plan">Delete</string>
+
+    <!-- Workout screen -->
+    <string name="workout_shoulder_safe_label">Shoulder-Safe Mode</string>
+    <string name="workout_shoulder_safe_desc">Hide exercises that stress the shoulder joint</string>
+    <string name="workout_quick_start_title">Quick Workout</string>
+    <string name="workout_quick_start_desc">Start an empty session, add exercises as you go</string>
+    <string name="workout_start">Start</string>
+    <string name="workout_templates_heading">Templates</string>
+    <string name="workout_recent_heading">Recent Workouts</string>
+    <string name="workout_template_exercise_count">%1$d exercises</string>
+    <string name="workout_duration_mins">%1$d min</string>
+    <string name="workout_sets_exercises">%1$d sets · %2$d exercises</string>
+    <string name="workout_empty">No workouts yet. Start your first session!</string>
+    <string name="workout_exercise_library">Library</string>
+
+    <!-- Active Workout screen -->
+    <string name="workout_active_title">Active Workout</string>
+    <string name="workout_finish">Finish</string>
+    <string name="workout_no_exercises">No exercises in this session</string>
+    <string name="workout_rest_timer">Rest: %1$ds</string>
+    <string name="workout_skip_rest">Skip</string>
+    <string name="workout_set_number">Set %1$d</string>
+    <string name="workout_weight_kg">kg</string>
+    <string name="workout_reps">Reps</string>
+    <string name="workout_complete_set">Done</string>
+
+    <!-- Exercise Library screen -->
+    <string name="workout_search_hint">Search exercises…</string>
+    <string name="workout_shoulder_safe_filter">Shoulder-Safe</string>
+    <string name="workout_library_empty">No exercises found</string>
+    <string name="exercise_shoulder_restricted_badge">⚠ Shoulder</string>
+
+    <!-- Create / Edit Workout Template -->
+    <string name="workout_template_create_title">Create Template</string>
+    <string name="workout_template_edit_title">Edit Template</string>
+    <string name="workout_template_save">Save</string>
+    <string name="workout_template_create_fab">Create Template</string>
+    <string name="workout_template_name_label">Template Name *</string>
+    <string name="workout_template_name_hint">e.g. Push Day</string>
+    <string name="workout_template_name_error">Template name is required</string>
+    <string name="workout_template_desc_label">Description (optional)</string>
+    <string name="workout_template_desc_hint">Brief description of this template</string>
+    <string name="workout_template_exercises_heading">Exercises</string>
+    <string name="workout_template_add_exercise">+ Add Exercise</string>
+    <string name="workout_template_no_exercise_error">Add at least one exercise to save</string>
+    <string name="workout_template_remove_exercise">Remove</string>
+    <string name="workout_template_sets_label">Sets</string>
+    <string name="workout_template_reps_label">Reps</string>
+    <string name="workout_template_weight_label">kg</string>
+    <string name="workout_template_saved">Template saved!</string>
+    <string name="workout_template_edit_action">Edit template</string>
+    <string name="workout_template_delete_action">Delete</string>
+    <string name="workout_template_delete_title">Delete Template?</string>
+    <string name="workout_template_delete_confirm">"%1$s" will be permanently deleted.</string>
+    <string name="workout_pick_exercise_title">Pick Exercise</string>
 </resources>

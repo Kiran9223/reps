@@ -25,11 +25,15 @@ class AppSettingsDataStore @Inject constructor(
         val ACTIVE_MEAL_PLAN_ID = androidx.datastore.preferences.core.longPreferencesKey("active_meal_plan_id")
         val IS_MEAL_PLAN_SEEDED = booleanPreferencesKey("is_meal_plan_seeded")
         val GROCERY_BOUGHT_KEYS = stringPreferencesKey("grocery_bought_keys")
+        val IS_EXERCISE_SEEDED = booleanPreferencesKey("is_exercise_seeded")
+        val IS_SHOULDER_SAFE_ONLY = booleanPreferencesKey("is_shoulder_safe_only")
     }
 
     val isDbSeeded: Flow<Boolean> = dataStore.data.map { it[Keys.IS_DB_SEEDED] ?: false }
     val isOnboardingComplete: Flow<Boolean> = dataStore.data.map { it[Keys.IS_ONBOARDING_COMPLETE] ?: false }
     val isMealPlanSeeded: Flow<Boolean> = dataStore.data.map { it[Keys.IS_MEAL_PLAN_SEEDED] ?: false }
+    val isExerciseSeeded: Flow<Boolean> = dataStore.data.map { it[Keys.IS_EXERCISE_SEEDED] ?: false }
+    val isShoulderSafeOnly: Flow<Boolean> = dataStore.data.map { it[Keys.IS_SHOULDER_SAFE_ONLY] ?: false }
     val activeMealPlanId: Flow<Long?> = dataStore.data.map { it[Keys.ACTIVE_MEAL_PLAN_ID] }
     val groceryBoughtKeys: Flow<Set<String>> = dataStore.data.map { prefs ->
         (prefs[Keys.GROCERY_BOUGHT_KEYS] ?: "")
@@ -47,6 +51,8 @@ class AppSettingsDataStore @Inject constructor(
     suspend fun setMealPlanSeeded(seeded: Boolean) = dataStore.edit { it[Keys.IS_MEAL_PLAN_SEEDED] = seeded }
     suspend fun setActiveMealPlanId(id: Long) = dataStore.edit { it[Keys.ACTIVE_MEAL_PLAN_ID] = id }
     suspend fun clearActiveMealPlanId() = dataStore.edit { it.remove(Keys.ACTIVE_MEAL_PLAN_ID) }
+    suspend fun setExerciseSeeded(seeded: Boolean) = dataStore.edit { it[Keys.IS_EXERCISE_SEEDED] = seeded }
+    suspend fun setShoulderSafeOnly(enabled: Boolean) = dataStore.edit { it[Keys.IS_SHOULDER_SAFE_ONLY] = enabled }
 
     suspend fun toggleGroceryBought(key: String) {
         dataStore.edit { prefs ->

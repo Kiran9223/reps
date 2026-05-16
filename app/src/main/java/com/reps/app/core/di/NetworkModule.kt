@@ -5,6 +5,7 @@ import com.reps.app.BuildConfig
 import com.reps.app.core.network.api.ApiNinjasApiService
 import com.reps.app.core.network.api.OpenFoodFactsApiService
 import com.reps.app.core.network.api.UsdaApiService
+import com.reps.app.core.network.api.WgerApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -70,4 +71,14 @@ object NetworkModule {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(ApiNinjasApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideWgerApiService(client: OkHttpClient): WgerApiService =
+        Retrofit.Builder()
+            .baseUrl("https://wger.de/")
+            .client(client)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(WgerApiService::class.java)
 }

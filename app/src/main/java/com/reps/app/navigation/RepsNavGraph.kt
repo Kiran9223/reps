@@ -26,6 +26,9 @@ import com.reps.app.feature.meal.NaturalLanguageEntryScreen
 import com.reps.app.feature.more.MoreScreen
 import com.reps.app.feature.progress.ProgressScreen
 import com.reps.app.feature.settings.SettingsScreen
+import com.reps.app.feature.workout.ActiveWorkoutScreen
+import com.reps.app.feature.workout.CreateWorkoutTemplateScreen
+import com.reps.app.feature.workout.ExerciseLibraryScreen
 import com.reps.app.feature.workout.WorkoutLogScreen
 
 @Composable
@@ -53,7 +56,79 @@ fun RepsNavGraph(
         }
 
         composable(Screen.MealLog.route) { MealLogScreen() }
-        composable(Screen.WorkoutLog.route) { WorkoutLogScreen() }
+
+        composable(Screen.WorkoutLog.route) {
+            WorkoutLogScreen(
+                onNavigateToActiveWorkout = { workoutLogId ->
+                    navController.navigate(Screen.ActiveWorkout.createRoute(workoutLogId))
+                },
+                onNavigateToExerciseLibrary = {
+                    navController.navigate(Screen.ExerciseLibrary.createRoute())
+                },
+                onNavigateToCreateTemplate = {
+                    navController.navigate(Screen.CreateWorkoutTemplate.createRoute())
+                },
+                onNavigateToEditTemplate = { templateId ->
+                    navController.navigate(Screen.CreateWorkoutTemplate.createRoute(templateId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ActiveWorkout.route,
+            arguments = listOf(
+                navArgument("workoutLogId") { type = NavType.LongType }
+            )
+        ) {
+            ActiveWorkoutScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.CreateWorkoutTemplate.route,
+            arguments = listOf(
+                navArgument("templateId") { type = NavType.LongType; defaultValue = -1L }
+            )
+        ) { backStackEntry ->
+            val sh = backStackEntry.savedStateHandle
+            val pendingExerciseId by sh.getStateFlow("picked_exercise_id", -1L).collectAsStateWithLifecycle()
+            val pendingExerciseName by sh.getStateFlow("picked_exercise_name", "").collectAsStateWithLifecycle()
+
+            CreateWorkoutTemplateScreen(
+                pendingExerciseId = pendingExerciseId,
+                pendingExerciseName = pendingExerciseName,
+                onPendingConsumed = { sh["picked_exercise_id"] = -1L },
+                onNavigateToExercisePicker = {
+                    navController.navigate(Screen.ExerciseLibrary.createRoute(pickMode = true))
+                },
+                onSaved = { navController.popBackStack() },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.ExerciseLibrary.route,
+            arguments = listOf(
+                navArgument("pickMode") { type = NavType.BoolType; defaultValue = false }
+            )
+        ) { backStackEntry ->
+            val pickMode = backStackEntry.arguments?.getBoolean("pickMode") ?: false
+            ExerciseLibraryScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onExercisePicked = if (pickMode) { exerciseId, exerciseName ->
+                    try {
+                        val entry = navController.getBackStackEntry(Screen.CreateWorkoutTemplate.route)
+                        entry.savedStateHandle["picked_exercise_id"] = exerciseId
+                        entry.savedStateHandle["picked_exercise_name"] = exerciseName
+                        navController.popBackStack(Screen.CreateWorkoutTemplate.route, inclusive = false)
+                    } catch (_: Exception) {
+                        navController.popBackStack()
+                    }
+                } else null
+            )
+        }
+
         composable(Screen.Progress.route) { ProgressScreen() }
 
         composable(Screen.More.route) {

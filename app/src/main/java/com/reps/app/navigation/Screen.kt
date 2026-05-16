@@ -31,6 +31,15 @@ sealed class Screen(val route: String) {
     }
 
     object WorkoutLog : Screen("workout_log")
+    object ActiveWorkout : Screen("active_workout/{workoutLogId}") {
+        fun createRoute(workoutLogId: Long) = "active_workout/$workoutLogId"
+    }
+    object CreateWorkoutTemplate : Screen("create_workout_template?templateId={templateId}") {
+        fun createRoute(templateId: Long? = null) = "create_workout_template?templateId=${templateId ?: -1L}"
+    }
+    object ExerciseLibrary : Screen("exercise_library?pickMode={pickMode}") {
+        fun createRoute(pickMode: Boolean = false) = "exercise_library?pickMode=$pickMode"
+    }
     object Progress : Screen("progress")
     object GroceryList : Screen("grocery_list")
     object MealPlan : Screen("meal_plan")

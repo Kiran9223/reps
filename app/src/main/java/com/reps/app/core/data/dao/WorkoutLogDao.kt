@@ -27,4 +27,10 @@ interface WorkoutLogDao {
 
     @Query("DELETE FROM workout_logs WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("SELECT * FROM workout_logs WHERE id = :id")
+    fun getByIdFlow(id: Long): Flow<WorkoutLogEntity?>
+
+    @Query("SELECT * FROM workout_logs ORDER BY date DESC, createdAt DESC LIMIT :limit")
+    fun getRecent(limit: Int): Flow<List<WorkoutLogEntity>>
 }

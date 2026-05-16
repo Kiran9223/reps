@@ -36,4 +36,10 @@ interface ExerciseDao {
 
     @Query("UPDATE exercises SET isDeleted = 1 WHERE id = :id")
     suspend fun softDelete(id: Long)
+
+    @Query("SELECT COUNT(*) FROM exercises WHERE isDeleted = 0")
+    suspend fun count(): Int
+
+    @Query("SELECT * FROM exercises WHERE name LIKE '%' || :query || '%' AND isDeleted = 0 ORDER BY name ASC LIMIT 1")
+    suspend fun searchImmediate(query: String): ExerciseEntity?
 }

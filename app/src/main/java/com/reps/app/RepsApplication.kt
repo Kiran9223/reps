@@ -7,6 +7,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.reps.app.core.data.worker.SeedDatabaseWorker
+import com.reps.app.core.data.worker.WgerSeedWorker
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -41,10 +42,16 @@ RepsApplication : Application(), Configuration.Provider {
     }
 
     private fun enqueueSeedWork() {
-        WorkManager.getInstance(this).enqueueUniqueWork(
+        val wm = WorkManager.getInstance(this)
+        wm.enqueueUniqueWork(
             SeedDatabaseWorker.WORK_NAME,
             ExistingWorkPolicy.KEEP,
             OneTimeWorkRequestBuilder<SeedDatabaseWorker>().build()
+        )
+        wm.enqueueUniqueWork(
+            WgerSeedWorker.WORK_NAME,
+            ExistingWorkPolicy.KEEP,
+            OneTimeWorkRequestBuilder<WgerSeedWorker>().build()
         )
     }
 }

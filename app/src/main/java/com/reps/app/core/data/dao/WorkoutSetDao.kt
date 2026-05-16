@@ -27,4 +27,13 @@ interface WorkoutSetDao {
 
     @Query("DELETE FROM workout_sets WHERE workoutLogId = :workoutLogId")
     suspend fun deleteByWorkoutLogId(workoutLogId: Long)
+
+    @Query("SELECT COUNT(*) FROM workout_sets WHERE workoutLogId = :workoutLogId AND isCompleted = 1")
+    suspend fun countCompleted(workoutLogId: Long): Int
+
+    @Query("SELECT COUNT(DISTINCT exerciseId) FROM workout_sets WHERE workoutLogId = :workoutLogId")
+    suspend fun countExercises(workoutLogId: Long): Int
+
+    @Query("UPDATE workout_sets SET isCompleted = 1, reps = COALESCE(:reps, reps), weightKg = COALESCE(:weightKg, weightKg) WHERE id = :setId")
+    suspend fun markCompleted(setId: Long, reps: Int? = null, weightKg: Double? = null)
 }

@@ -27,4 +27,7 @@ interface WorkoutTemplateExerciseDao {
 
     @Query("DELETE FROM workout_template_exercises WHERE templateId = :templateId")
     suspend fun deleteByTemplateId(templateId: Long)
+
+    @Query("SELECT * FROM workout_template_exercises WHERE templateId = :templateId ORDER BY sortOrder ASC")
+    suspend fun getByTemplateIdImmediate(templateId: Long): List<WorkoutTemplateExerciseEntity>
 }

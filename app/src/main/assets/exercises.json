@@ -1,0 +1,326 @@
+[
+  {
+    "name": "Barbell Squat",
+    "description": "King of compound lower-body movements",
+    "muscleGroups": ["Quadriceps", "Hamstrings", "Glutes", "Core"],
+    "equipment": ["Barbell", "Rack"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Place barbell on upper traps. Feet shoulder-width apart. Squat until thighs are parallel to floor, then drive through heels to stand."
+  },
+  {
+    "name": "Leg Press",
+    "description": "Machine-based quad and glute compound movement",
+    "muscleGroups": ["Quadriceps", "Hamstrings", "Glutes"],
+    "equipment": ["Leg Press Machine"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Sit in machine with feet shoulder-width on platform. Lower weight until knees reach 90 degrees, then press back to start."
+  },
+  {
+    "name": "Romanian Deadlift",
+    "description": "Hip-hinge movement targeting posterior chain",
+    "muscleGroups": ["Hamstrings", "Glutes", "Lower Back"],
+    "equipment": ["Barbell"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Hold barbell at hip level. Hinge at hips, pushing them back as bar slides down legs. Feel hamstring stretch, then drive hips forward to return."
+  },
+  {
+    "name": "Goblet Squat",
+    "description": "Dumbbell squat variation with excellent form reinforcement",
+    "muscleGroups": ["Quadriceps", "Glutes", "Core"],
+    "equipment": ["Dumbbell"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Hold dumbbell vertically at chest. Feet slightly wider than shoulder-width. Squat deep keeping elbows inside knees, then stand."
+  },
+  {
+    "name": "Leg Extension",
+    "description": "Isolation exercise for the quadriceps",
+    "muscleGroups": ["Quadriceps"],
+    "equipment": ["Leg Extension Machine"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Sit in machine with pad on lower shin. Extend legs fully, squeeze quads at top, then lower under control."
+  },
+  {
+    "name": "Lying Leg Curl",
+    "description": "Isolation exercise for the hamstrings",
+    "muscleGroups": ["Hamstrings"],
+    "equipment": ["Leg Curl Machine"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Lie face down with pad behind ankles. Curl legs toward glutes, squeeze at top, lower under control."
+  },
+  {
+    "name": "Standing Calf Raise",
+    "description": "Isolation for the gastrocnemius",
+    "muscleGroups": ["Calves"],
+    "equipment": ["Calf Raise Machine", "Bodyweight"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Stand on edge of platform with heels hanging. Rise onto toes, hold for 1 second, then lower below platform level."
+  },
+  {
+    "name": "Bulgarian Split Squat",
+    "description": "Unilateral lower-body movement for quad and glute development",
+    "muscleGroups": ["Quadriceps", "Glutes", "Hamstrings"],
+    "equipment": ["Dumbbell", "Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Rear foot elevated on bench, front foot forward. Lower rear knee toward floor keeping front shin vertical, then drive up."
+  },
+  {
+    "name": "Hip Thrust",
+    "description": "Best glute isolation movement",
+    "muscleGroups": ["Glutes", "Hamstrings"],
+    "equipment": ["Barbell", "Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Upper back on bench, barbell across hips. Drive hips up by squeezing glutes, forming a straight line from knees to shoulders. Lower and repeat."
+  },
+  {
+    "name": "Glute Bridge",
+    "description": "Floor-based glute activation exercise",
+    "muscleGroups": ["Glutes", "Hamstrings"],
+    "equipment": ["Bodyweight"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Lie on back with knees bent, feet flat. Drive hips up by squeezing glutes, hold 2 seconds at top, lower under control."
+  },
+  {
+    "name": "Lat Pulldown",
+    "description": "Vertical pull for lat width",
+    "muscleGroups": ["Latissimus Dorsi", "Biceps", "Rear Deltoid"],
+    "equipment": ["Cable Machine", "Lat Pulldown Bar"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Grip bar slightly wider than shoulder-width. Pull bar to upper chest, driving elbows down. Control the return."
+  },
+  {
+    "name": "Seated Cable Row",
+    "description": "Horizontal pull for back thickness",
+    "muscleGroups": ["Latissimus Dorsi", "Rhomboids", "Biceps", "Rear Deltoid"],
+    "equipment": ["Cable Machine", "Close Grip Handle"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Sit with feet on platform, slight knee bend. Pull handle to lower chest, squeezing shoulder blades together. Extend arms fully on return."
+  },
+  {
+    "name": "One-Arm Dumbbell Row",
+    "description": "Unilateral back exercise for lat and rhomboid development",
+    "muscleGroups": ["Latissimus Dorsi", "Rhomboids", "Biceps"],
+    "equipment": ["Dumbbell", "Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Brace one knee and hand on bench. Pull dumbbell to hip, leading with elbow. Lower under control."
+  },
+  {
+    "name": "Barbell Bent-Over Row",
+    "description": "Heavy compound back movement",
+    "muscleGroups": ["Latissimus Dorsi", "Rhomboids", "Biceps", "Lower Back"],
+    "equipment": ["Barbell"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Hinge forward 45 degrees, bar hanging. Row bar to lower chest, squeezing lats. Lower under control. Keep core braced."
+  },
+  {
+    "name": "Pull-Up",
+    "description": "Bodyweight vertical pull for lat and bicep development",
+    "muscleGroups": ["Latissimus Dorsi", "Biceps", "Core"],
+    "equipment": ["Pull-Up Bar"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Overhand grip slightly wider than shoulders. Pull chest to bar by driving elbows down and back. Lower with control."
+  },
+  {
+    "name": "Chin-Up",
+    "description": "Underhand-grip vertical pull with greater bicep emphasis",
+    "muscleGroups": ["Latissimus Dorsi", "Biceps", "Core"],
+    "equipment": ["Pull-Up Bar"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Underhand grip shoulder-width apart. Pull chin above bar driving elbows to sides. Lower with control."
+  },
+  {
+    "name": "Barbell Bench Press",
+    "description": "Primary horizontal push for chest development",
+    "muscleGroups": ["Pectorals", "Triceps", "Front Deltoid"],
+    "equipment": ["Barbell", "Bench", "Rack"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Lie on bench, grip slightly wider than shoulders. Lower bar to lower chest with controlled descent, press explosively to lockout."
+  },
+  {
+    "name": "Dumbbell Chest Press (Flat)",
+    "description": "Dumbbell horizontal push with greater range of motion",
+    "muscleGroups": ["Pectorals", "Triceps", "Front Deltoid"],
+    "equipment": ["Dumbbell", "Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Lie on bench holding dumbbells. Lower to chest level with elbows at 45 degrees, press up and squeeze chest at top."
+  },
+  {
+    "name": "Incline Dumbbell Press",
+    "description": "Upper chest emphasis press",
+    "muscleGroups": ["Upper Pectorals", "Triceps", "Front Deltoid"],
+    "equipment": ["Dumbbell", "Incline Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Set bench to 30–45 degrees. Press dumbbells from chest level upward and slightly together. Lower with control."
+  },
+  {
+    "name": "Dumbbell Fly",
+    "description": "Chest isolation with stretch emphasis",
+    "muscleGroups": ["Pectorals"],
+    "equipment": ["Dumbbell", "Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Lie on bench with dumbbells above chest, slight elbow bend. Open arms in wide arc until chest stretch felt, bring back together."
+  },
+  {
+    "name": "Cable Crossover",
+    "description": "Cable fly for chest peak contraction",
+    "muscleGroups": ["Pectorals"],
+    "equipment": ["Cable Machine"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Set cables high. Stand between cables, slight forward lean. Bring hands together in front of chest squeezing pecs. Return with control."
+  },
+  {
+    "name": "Push-Up",
+    "description": "Bodyweight horizontal push",
+    "muscleGroups": ["Pectorals", "Triceps", "Front Deltoid", "Core"],
+    "equipment": ["Bodyweight"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "High plank position, hands slightly wider than shoulders. Lower chest to floor keeping elbows at 45 degrees. Press back up to start."
+  },
+  {
+    "name": "Barbell Bicep Curl",
+    "description": "Primary bicep mass builder",
+    "muscleGroups": ["Biceps"],
+    "equipment": ["Barbell"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Stand with underhand grip. Curl bar to shoulder height keeping elbows pinned at sides. Lower with full control."
+  },
+  {
+    "name": "Dumbbell Bicep Curl",
+    "description": "Unilateral bicep curl",
+    "muscleGroups": ["Biceps"],
+    "equipment": ["Dumbbell"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Alternate curling each dumbbell to shoulder height with supination. Keep upper arm still throughout."
+  },
+  {
+    "name": "Hammer Curl",
+    "description": "Neutral-grip curl for brachialis and forearm",
+    "muscleGroups": ["Biceps", "Brachialis", "Forearms"],
+    "equipment": ["Dumbbell"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Hold dumbbells with neutral grip (thumbs up). Curl toward shoulder keeping wrist neutral. Lower under control."
+  },
+  {
+    "name": "Tricep Pushdown (Cable)",
+    "description": "Cable isolation for tricep long and lateral head",
+    "muscleGroups": ["Triceps"],
+    "equipment": ["Cable Machine", "Rope or Bar"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Stand at cable machine, grip at chest height. Push down until arms fully extended, squeezing triceps. Return slowly."
+  },
+  {
+    "name": "Tricep Dip",
+    "description": "Bodyweight tricep exercise using parallel bars or bench",
+    "muscleGroups": ["Triceps", "Pectorals"],
+    "equipment": ["Parallel Bars", "Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Support on parallel bars. Lower body until upper arms are parallel to floor. Press back up without locking elbows at top."
+  },
+  {
+    "name": "Skull Crusher",
+    "description": "Lying tricep extension for long head emphasis",
+    "muscleGroups": ["Triceps"],
+    "equipment": ["Barbell", "EZ Bar", "Bench"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Lie on bench, barbell above chest. Keeping upper arms vertical, lower bar toward forehead by bending elbows. Press back to start."
+  },
+  {
+    "name": "Plank",
+    "description": "Core stability exercise",
+    "muscleGroups": ["Core", "Transverse Abdominis"],
+    "equipment": ["Bodyweight"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Forearms on floor, body in straight line from head to heels. Brace core and hold. No sagging or hiking hips."
+  },
+  {
+    "name": "Hanging Leg Raise",
+    "description": "Lower ab and hip flexor exercise on pull-up bar",
+    "muscleGroups": ["Core", "Hip Flexors"],
+    "equipment": ["Pull-Up Bar"],
+    "isShoulderSafe": true,
+    "restrictedMovements": [],
+    "instructions": "Hang from bar. Raise straight legs to horizontal or higher using core. Lower under control without swinging."
+  },
+  {
+    "name": "Barbell Overhead Press",
+    "description": "Primary shoulder pressing movement",
+    "muscleGroups": ["Deltoids", "Triceps", "Upper Trapezius"],
+    "equipment": ["Barbell"],
+    "isShoulderSafe": false,
+    "restrictedMovements": ["overhead"],
+    "instructions": "Stand with barbell at shoulder height. Press overhead to full lockout. Lower back to shoulders under control."
+  },
+  {
+    "name": "Dumbbell Shoulder Press",
+    "description": "Seated or standing dumbbell overhead press",
+    "muscleGroups": ["Deltoids", "Triceps"],
+    "equipment": ["Dumbbell"],
+    "isShoulderSafe": false,
+    "restrictedMovements": ["overhead"],
+    "instructions": "Hold dumbbells at shoulder height. Press overhead to full lockout. Lower with control."
+  },
+  {
+    "name": "Dumbbell Lateral Raise",
+    "description": "Shoulder isolation for lateral deltoid width",
+    "muscleGroups": ["Deltoids"],
+    "equipment": ["Dumbbell"],
+    "isShoulderSafe": false,
+    "restrictedMovements": ["abduction"],
+    "instructions": "Hold dumbbells at sides. Raise arms out to shoulder height with slight elbow bend. Lower under control."
+  },
+  {
+    "name": "Upright Row",
+    "description": "Barbell or dumbbell upper trap and deltoid exercise",
+    "muscleGroups": ["Deltoids", "Trapezius"],
+    "equipment": ["Barbell", "Dumbbell"],
+    "isShoulderSafe": false,
+    "restrictedMovements": ["overhead", "internal-rotation"],
+    "instructions": "Hold bar with narrow overhand grip. Pull bar straight up to chin, leading with elbows. Lower under control."
+  },
+  {
+    "name": "Arnold Press",
+    "description": "Rotating dumbbell press for full deltoid development",
+    "muscleGroups": ["Deltoids", "Triceps"],
+    "equipment": ["Dumbbell"],
+    "isShoulderSafe": false,
+    "restrictedMovements": ["overhead"],
+    "instructions": "Start with dumbbells at shoulder height palms facing you. Rotate palms outward as you press overhead. Reverse on the way down."
+  },
+  {
+    "name": "Behind Neck Press",
+    "description": "Overhead press variation with bar behind head",
+    "muscleGroups": ["Deltoids", "Triceps", "Upper Trapezius"],
+    "equipment": ["Barbell"],
+    "isShoulderSafe": false,
+    "restrictedMovements": ["overhead", "behind-neck"],
+    "instructions": "Place barbell on traps behind head. Press overhead to lockout. Lower back behind neck. Use extreme caution or avoid entirely."
+  }
+]

@@ -4,8 +4,10 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.reps.app.core.data.entity.WorkoutTemplateEntity
+import com.reps.app.core.data.relation.WorkoutTemplateWithExercises
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -18,6 +20,14 @@ interface WorkoutTemplateDao {
 
     @Query("SELECT * FROM workout_templates WHERE isDeleted = 0 ORDER BY name ASC")
     fun getAll(): Flow<List<WorkoutTemplateEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_templates WHERE isDeleted = 0 ORDER BY name ASC")
+    fun getAllWithExercises(): Flow<List<WorkoutTemplateWithExercises>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_templates WHERE id = :id AND isDeleted = 0")
+    suspend fun getWithExercisesById(id: Long): WorkoutTemplateWithExercises?
 
     @Query("SELECT * FROM workout_templates WHERE id = :id AND isDeleted = 0")
     suspend fun getById(id: Long): WorkoutTemplateEntity?
