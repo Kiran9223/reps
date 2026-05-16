@@ -70,6 +70,10 @@ class FoodSearchViewModel @Inject constructor(
 
     fun retry() { _retryTrigger.value++ }
 
+    fun deleteCustomFood(id: Long) {
+        viewModelScope.launch { foodRepository.deleteCustomFood(id) }
+    }
+
     private suspend fun loadFoods(query: String, tab: FoodTab) {
         _uiState.update { it.copy(isLoading = true, error = null) }
         try {

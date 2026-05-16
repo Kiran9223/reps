@@ -21,4 +21,5 @@ interface WorkoutRepository {
     suspend fun createTemplate(name: String, description: String?, exercises: List<TemplateExerciseDraft>): Long
     suspend fun updateTemplate(templateId: Long, name: String, description: String?, exercises: List<TemplateExerciseDraft>)
     suspend fun deleteTemplate(templateId: Long)
+    suspend fun getPersonalRecord(exerciseId: Long): Double?
 }

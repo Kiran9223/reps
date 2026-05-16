@@ -20,6 +20,9 @@ interface ProgressRepository {
     )
     fun getMeasurementHistory(): Flow<List<BodyMeasurement>>
 
+    suspend fun deleteWeightCheckIn(id: Long)
+    suspend fun deleteMeasurement(id: Long)
+
     fun getStreaks(): Flow<Streaks>
     fun getWeeklyStats(): Flow<WeeklyStats>
 }

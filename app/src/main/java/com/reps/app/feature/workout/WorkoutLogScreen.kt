@@ -65,6 +65,7 @@ import java.util.Locale
 @Composable
 fun WorkoutLogScreen(
     onNavigateToActiveWorkout: (workoutLogId: Long) -> Unit = {},
+    onNavigateToWorkoutHistory: (workoutLogId: Long) -> Unit = {},
     onNavigateToExerciseLibrary: () -> Unit = {},
     onNavigateToCreateTemplate: () -> Unit = {},
     onNavigateToEditTemplate: (templateId: Long) -> Unit = {},
@@ -160,7 +161,10 @@ fun WorkoutLogScreen(
                     )
                 }
                 items(state.recentWorkouts, key = { "workout_${it.id}" }) { summary ->
-                    RecentWorkoutCard(summary = summary)
+                    RecentWorkoutCard(
+                        summary = summary,
+                        onClick = { onNavigateToWorkoutHistory(summary.id) }
+                    )
                 }
             }
 
@@ -341,11 +345,13 @@ private fun TemplateCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecentWorkoutCard(summary: WorkoutSummary) {
+private fun RecentWorkoutCard(summary: WorkoutSummary, onClick: () -> Unit = {}) {
     val dateStr = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
         .format(Date(summary.date))
     Card(
+        onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp)
     ) {

@@ -29,8 +29,10 @@ android {
         }
         val usdaApiKey = localProperties.getProperty("USDA_API_KEY") ?: ""
         val apiNinjasKey = localProperties.getProperty("API_NINJAS_KEY") ?: ""
+        val geminiApiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "USDA_API_KEY", "\"$usdaApiKey\"")
         buildConfigField("String", "API_NINJAS_KEY", "\"$apiNinjasKey\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {
@@ -120,6 +122,9 @@ dependencies {
 
     // MediaPipe LLM Inference (on-device AI)
     implementation("com.google.mediapipe:tasks-genai:0.10.27")
+
+    // Google Generative AI (Gemini)
+    implementation(libs.generativeai)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

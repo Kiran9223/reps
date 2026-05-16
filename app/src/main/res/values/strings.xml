@@ -382,6 +382,7 @@
     <string name="checkin_notes_label">Notes (optional)</string>
     <string name="checkin_notes_placeholder">e.g. after morning run</string>
     <string name="checkin_save">Save Check-in</string>
+    <string name="checkin_history_heading">Check-in History (swipe left to delete)</string>
     <string name="checkin_delta_gained">+%1$.1f kg from last check-in</string>
     <string name="checkin_delta_lost">%1$.1f kg from last check-in</string>
     <string name="checkin_first">First check-in</string>
@@ -469,4 +470,34 @@
 
     <!-- Progress insight card -->
     <string name="progress_insight_title">Progress Insight</string>
+
+    <!-- Meal Plan: Log Today's Plan -->
+    <string name="meal_plan_log_today">Log Today\'s Plan</string>
+    <string name="meal_plan_logged">Today\'s meals logged to your diary!</string>
+
+    <!-- Workout History screen -->
+    <string name="screen_workout_history">Workout Details</string>
+    <string name="workout_history_set_label">Set %1$d</string>
+    <string name="workout_history_set_reps_weight">%1$d reps @ %2$.1f kg</string>
+    <string name="workout_history_set_reps_only">%1$d reps</string>
+    <string name="workout_history_set_incomplete">—</string>
+    <string name="workout_recent_tap_hint">Tap to see details</string>
+
+    <!-- Personal record badge in active workout -->
+    <string name="workout_pr_badge">PR: %1$.1f kg</string>
+
+    <!-- Edit serving size dialog -->
+    <string name="edit_servings_title">Edit Serving Size</string>
+    <string name="edit_servings_label">Servings</string>
+    <string name="edit_servings_save">Save</string>
+    <string name="edit_servings_cancel">Cancel</string>
+
+    <!-- Water quick-add buttons -->
+    <string name="dashboard_add_water_200">+200 ml</string>
+    <string name="dashboard_add_water_500">+500 ml</string>
+    <string name="dashboard_add_water_1l">+1 L</string>
+
+    <!-- Macro remaining / goal met -->
+    <string name="dashboard_macro_remaining">%1$dg left</string>
+    <string name="dashboard_macro_goal_met">Goal met ✓</string>
 </resources>

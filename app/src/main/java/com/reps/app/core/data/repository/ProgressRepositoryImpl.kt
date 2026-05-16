@@ -76,6 +76,12 @@ class ProgressRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun deleteWeightCheckIn(id: Long) =
+        withContext(ioDispatcher) { weightLogDao.delete(id) }
+
+    override suspend fun deleteMeasurement(id: Long) =
+        withContext(ioDispatcher) { bodyMeasurementDao.delete(id) }
+
     override fun getMeasurementHistory(): Flow<List<BodyMeasurement>> =
         bodyMeasurementDao.getAll().map { entities ->
             // entities are DESC (most recent first); prev = index+1

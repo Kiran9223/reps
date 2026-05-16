@@ -106,6 +106,10 @@ class ProgressViewModel @Inject constructor(
 
     fun toggleMeasurements() { _measurementsExpanded.value = !_measurementsExpanded.value }
 
+    fun deleteWeightCheckIn(id: Long) {
+        viewModelScope.launch { progressRepository.deleteWeightCheckIn(id) }
+    }
+
     fun saveCheckIn() {
         val weightText = _checkInWeight.value.trim()
         val weightKg = weightText.toDoubleOrNull()

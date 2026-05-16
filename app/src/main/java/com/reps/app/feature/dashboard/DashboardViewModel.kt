@@ -11,6 +11,7 @@ import com.reps.app.core.domain.MacroCalculator
 import com.reps.app.core.domain.model.DayLog
 import com.reps.app.core.domain.model.DayMacros
 import com.reps.app.core.domain.model.GoalProgress
+import com.reps.app.core.domain.model.LoggedFood
 import com.reps.app.core.domain.model.MacroTargets
 import com.reps.app.core.domain.model.MealSlot
 import com.reps.app.core.domain.repository.FoodRepository
@@ -52,7 +53,8 @@ data class DashboardUiState(
     val isFetchingInsight: Boolean = false,
     val mealSuggestion: AiMealSuggestion? = null,
     val isFetchingSuggestion: Boolean = false,
-    val pendingDeleteEntryId: Long? = null
+    val pendingDeleteEntryId: Long? = null,
+    val editingEntry: LoggedFood? = null
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -73,6 +75,7 @@ class DashboardViewModel @Inject constructor(
     private val _isFetchingSuggestion = MutableStateFlow(false)
     private val _isFetchingInsight = MutableStateFlow(false)
     private val _pendingDeleteEntryId = MutableStateFlow<Long?>(null)
+    private val _editingEntry = MutableStateFlow<LoggedFood?>(null)
 
     private val macroTargets: StateFlow<MacroTargets> = combine(
         userPrefs.weightKg, userPrefs.heightCm, userPrefs.age, userPrefs.activityLevel
@@ -131,8 +134,7 @@ class DashboardViewModel @Inject constructor(
         val isFetchingInsight: Boolean,
         val insight: String?,
         val suggestion: AiMealSuggestion?,
-        val isFetchingSuggestion: Boolean,
-        val pendingDeleteId: Long?
+        val isFetchingSuggestion: Boolean
     )
 
     val uiState: StateFlow<DashboardUiState> = combine(
@@ -143,10 +145,11 @@ class DashboardViewModel @Inject constructor(
             Triple(date, tab, sheet)
         },
         combine(weekHistory, goalProgress) { history, gp -> history to gp },
-        combine(_isFetchingInsight, dailyInsight, _mealSuggestion, _isFetchingSuggestion, _pendingDeleteEntryId) { f, i, s, fs, pending ->
-            AiBundle(f, i, s, fs, pending)
-        }
-    ) { bundle, (date, tab, sheet), (history, gp), ai ->
+        combine(_isFetchingInsight, dailyInsight, _mealSuggestion, _isFetchingSuggestion) { f, i, s, fs ->
+            AiBundle(f, i, s, fs)
+        },
+        combine(_pendingDeleteEntryId, _editingEntry) { pending, editing -> pending to editing }
+    ) { bundle, (date, tab, sheet), (history, gp), ai, (pending, editing) ->
         DashboardUiState(
             selectedDate = date,
             dayLog = bundle.log,
@@ -162,7 +165,8 @@ class DashboardViewModel @Inject constructor(
             isFetchingInsight = ai.isFetchingInsight,
             mealSuggestion = ai.suggestion,
             isFetchingSuggestion = ai.isFetchingSuggestion,
-            pendingDeleteEntryId = ai.pendingDeleteId
+            pendingDeleteEntryId = pending,
+            editingEntry = editing
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), DashboardUiState())
 
@@ -189,9 +193,19 @@ class DashboardViewModel @Inject constructor(
     fun getSelectedDateStr(): String = _selectedDate.value.toString()
     fun getSelectedSlotName(): String = _activeSheet.value?.name ?: ""
 
-    fun addWater() {
+    fun addWater(ml: Int) {
         viewModelScope.launch {
-            appSettingsDataStore.addWater(_selectedDate.value.toString(), 250)
+            appSettingsDataStore.addWater(_selectedDate.value.toString(), ml)
+        }
+    }
+
+    fun openEditEntry(entry: LoggedFood) { _editingEntry.value = entry }
+    fun closeEditEntry() { _editingEntry.value = null }
+
+    fun saveEditedServings(entryId: Long, servings: Double) {
+        viewModelScope.launch {
+            mealLogRepository.updateServings(entryId, servings)
+            closeEditEntry()
         }
     }
 

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,10 +74,12 @@ fun MealPlanScreen(
     val snackMessage by viewModel.snackMessage.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
 
+    val planLoggedMsg = stringResource(R.string.meal_plan_logged)
+    val clonedMsg = stringResource(R.string.meal_plan_cloned)
     LaunchedEffect(snackMessage) {
-        if (snackMessage == "template_cloned") {
-            snackbarHost.showSnackbar("Template cloned!")
-            viewModel.clearSnack()
+        when (snackMessage) {
+            "template_cloned" -> { snackbarHost.showSnackbar(clonedMsg); viewModel.clearSnack() }
+            "plan_logged" -> { snackbarHost.showSnackbar(planLoggedMsg); viewModel.clearSnack() }
         }
     }
 
@@ -142,7 +145,10 @@ fun MealPlanScreen(
 
                     val selectedDay = plan.days.getOrNull(state.selectedDayIndex)
                     if (selectedDay != null) {
-                        DayPlanContent(day = selectedDay)
+                        DayPlanContent(
+                            day = selectedDay,
+                            onLogToday = { viewModel.logTodaysPlan(selectedDay) }
+                        )
                     }
                 }
             }
@@ -202,11 +208,19 @@ private fun PlanSummaryBanner(plan: MealPlanTemplate) {
 }
 
 @Composable
-private fun DayPlanContent(day: MealPlanDayPlan) {
+private fun DayPlanContent(day: MealPlanDayPlan, onLogToday: () -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item {
+            Button(
+                onClick = onLogToday,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.meal_plan_log_today))
+            }
+        }
         MealSlot.entries.forEach { slot ->
             val foods = day.slots[slot] ?: emptyList()
             item(key = slot.name) {

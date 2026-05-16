@@ -2,7 +2,9 @@ package com.reps.app.feature.meal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reps.app.core.domain.model.MealPlanDayPlan
 import com.reps.app.core.domain.model.MealPlanTemplate
+import com.reps.app.core.domain.repository.MealLogRepository
 import com.reps.app.core.domain.repository.MealPlanRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 data class MealPlanUiState(
@@ -25,7 +28,8 @@ data class MealPlanUiState(
 
 @HiltViewModel
 class MealPlanViewModel @Inject constructor(
-    private val mealPlanRepository: MealPlanRepository
+    private val mealPlanRepository: MealPlanRepository,
+    private val mealLogRepository: MealLogRepository
 ) : ViewModel() {
 
     private val _selectedDayIndex = MutableStateFlow(0)
@@ -93,6 +97,18 @@ class MealPlanViewModel @Inject constructor(
         viewModelScope.launch {
             mealPlanRepository.deletePlan(templateId)
             _showSwitchDialog.value = false
+        }
+    }
+
+    fun logTodaysPlan(day: MealPlanDayPlan) {
+        viewModelScope.launch {
+            val today = LocalDate.now().toString()
+            day.slots.forEach { (slot, foods) ->
+                foods.forEach { slotFood ->
+                    mealLogRepository.addFoodToLog(today, slot, slotFood.food.id, slotFood.servingMultiplier)
+                }
+            }
+            _snackMessage.value = "plan_logged"
         }
     }
 

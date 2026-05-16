@@ -36,4 +36,7 @@ interface WorkoutSetDao {
 
     @Query("UPDATE workout_sets SET isCompleted = 1, reps = COALESCE(:reps, reps), weightKg = COALESCE(:weightKg, weightKg) WHERE id = :setId")
     suspend fun markCompleted(setId: Long, reps: Int? = null, weightKg: Double? = null)
+
+    @Query("SELECT MAX(weightKg) FROM workout_sets WHERE exerciseId = :exerciseId AND isCompleted = 1 AND weightKg IS NOT NULL AND weightKg > 0")
+    suspend fun getMaxWeight(exerciseId: Long): Double?
 }

@@ -60,6 +60,13 @@ class MealLogRepositoryImpl @Inject constructor(
         withContext(ioDispatcher) { mealLogEntryDao.softDelete(entryId) }
     }
 
+    override suspend fun updateServings(entryId: Long, servings: Double) {
+        withContext(ioDispatcher) {
+            val entry = mealLogEntryDao.getById(entryId) ?: return@withContext
+            mealLogEntryDao.update(entry.copy(servingMultiplier = servings))
+        }
+    }
+
     override fun getDayMacros(dateStr: String, targets: MacroTargets): Flow<DayMacros> =
         getDayLog(dateStr).map { log ->
             DayMacros(

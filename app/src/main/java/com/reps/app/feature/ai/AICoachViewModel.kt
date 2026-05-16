@@ -2,13 +2,23 @@ package com.reps.app.feature.ai
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reps.app.ai.AIAction
 import com.reps.app.ai.AIRepository
 import com.reps.app.ai.ChatMessage
+import com.reps.app.ai.ExerciseSpec
+import com.reps.app.ai.FoodSpec
+import com.reps.app.ai.MealSlotSpec
 import com.reps.app.core.data.dao.AIChatMessageDao
 import com.reps.app.core.data.datastore.UserPreferencesDataStore
 import com.reps.app.core.data.entity.AIChatMessageEntity
 import com.reps.app.core.di.IoDispatcher
+import com.reps.app.core.domain.model.ExerciseFilter
+import com.reps.app.core.domain.model.MealSlot
+import com.reps.app.core.domain.model.TemplateExerciseDraft
+import com.reps.app.core.domain.repository.FoodRepository
 import com.reps.app.core.domain.repository.MealLogRepository
+import com.reps.app.core.domain.repository.MealPlanRepository
+import com.reps.app.core.domain.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,15 +30,26 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.time.LocalDate
 import javax.inject.Inject
+
+private val actionJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val inputText: String = "",
     val streamedText: String = "",
     val isStreaming: Boolean = false,
-    val isAiAvailable: Boolean = true
+    val isAiAvailable: Boolean = true,
+    val pendingAction: AIAction? = null,
+    val isConfirmingAction: Boolean = false,
+    val actionResult: String? = null
 )
 
 @HiltViewModel
@@ -37,25 +58,35 @@ class AICoachViewModel @Inject constructor(
     private val aiChatMessageDao: AIChatMessageDao,
     private val userPrefs: UserPreferencesDataStore,
     private val mealLogRepository: MealLogRepository,
+    private val workoutRepository: WorkoutRepository,
+    private val mealPlanRepository: MealPlanRepository,
+    private val foodRepository: FoodRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val _inputText = MutableStateFlow("")
     private val _streamedText = MutableStateFlow("")
     private val _isStreaming = MutableStateFlow(false)
+    private val _pendingAction = MutableStateFlow<AIAction?>(null)
+    private val _isConfirmingAction = MutableStateFlow(false)
+    private val _actionResult = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<ChatUiState> = combine(
         aiChatMessageDao.getAll(),
         _inputText,
         _streamedText,
-        _isStreaming
-    ) { entities, input, streamed, streaming ->
+        _isStreaming,
+        combine(_pendingAction, _isConfirmingAction, _actionResult) { a, c, r -> Triple(a, c, r) }
+    ) { entities, input, streamed, streaming, (action, confirming, result) ->
         ChatUiState(
             messages = entities.map { ChatMessage(it.content, it.isFromUser, it.timestamp) },
             inputText = input,
             streamedText = streamed,
             isStreaming = streaming,
-            isAiAvailable = aiRepository.isAvailable()
+            isAiAvailable = aiRepository.isAvailable(),
+            pendingAction = action,
+            isConfirmingAction = confirming,
+            actionResult = result
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), ChatUiState())
 
@@ -66,33 +97,48 @@ class AICoachViewModel @Inject constructor(
         if (text.isBlank() || _isStreaming.value) return
 
         viewModelScope.launch {
-            // Read last 8 messages before inserting so the current turn isn't included in history
             val history = withContext(ioDispatcher) {
                 aiChatMessageDao.getRecent(8).reversed()
                     .map { ChatMessage(it.content, it.isFromUser, it.timestamp) }
             }
-
             withContext(ioDispatcher) {
                 aiChatMessageDao.insert(AIChatMessageEntity(content = text, isFromUser = true))
             }
             _inputText.value = ""
             _isStreaming.value = true
             _streamedText.value = ""
+            _actionResult.value = null
 
             val userContext = buildUserContext()
-
             var fullResponse = ""
             try {
                 aiRepository.getChatResponseStream(history, text, userContext)
                     .collect { token ->
                         fullResponse += token
-                        _streamedText.value = fullResponse
+                        _streamedText.value = stripActionBlock(fullResponse)
                     }
+            } catch (e: Exception) {
+                android.util.Log.e("AICoach", "Chat error: ${e::class.simpleName} — ${e.message}")
+                val errorMsg = when {
+                    e.message?.contains("quota", ignoreCase = true) == true ||
+                    e.message?.contains("limit: 0", ignoreCase = true) == true ->
+                        "AI quota exceeded. Please wait a moment and try again."
+                    e.message?.contains("rate", ignoreCase = true) == true ->
+                        "Too many requests. Please wait a moment and try again."
+                    else -> "Something went wrong: ${e::class.simpleName}"
+                }
+                withContext(ioDispatcher) {
+                    aiChatMessageDao.insert(AIChatMessageEntity(content = errorMsg, isFromUser = false))
+                }
             } finally {
                 if (fullResponse.isNotBlank()) {
+                    val displayText = stripActionBlock(fullResponse)
                     withContext(ioDispatcher) {
-                        aiChatMessageDao.insert(AIChatMessageEntity(content = fullResponse, isFromUser = false))
+                        aiChatMessageDao.insert(
+                            AIChatMessageEntity(content = displayText, isFromUser = false)
+                        )
                     }
+                    parseActionBlock(fullResponse)?.let { _pendingAction.value = it }
                 }
                 _streamedText.value = ""
                 _isStreaming.value = false
@@ -105,8 +151,201 @@ class AICoachViewModel @Inject constructor(
         sendMessage()
     }
 
+    fun dismissAction() {
+        _pendingAction.value = null
+        _actionResult.value = null
+    }
+
+    fun confirmAction() {
+        val action = _pendingAction.value ?: return
+        _isConfirmingAction.value = true
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) {
+                runCatching { executeAction(action) }.getOrElse { "Failed: ${it.message}" }
+            }
+            _pendingAction.value = null
+            _isConfirmingAction.value = false
+            _actionResult.value = result
+            withContext(ioDispatcher) {
+                aiChatMessageDao.insert(AIChatMessageEntity(content = "✓ $result", isFromUser = false))
+            }
+        }
+    }
+
     fun clearChat() {
         viewModelScope.launch { aiChatMessageDao.clearAll() }
+    }
+
+    private suspend fun executeAction(action: AIAction): String = when (action) {
+        is AIAction.LogMeal -> executeLogMeal(action)
+        is AIAction.UpdateGoal -> executeUpdateGoal(action)
+        is AIAction.CreateWorkoutPlan -> executeCreateWorkoutPlan(action)
+        is AIAction.CreateMealPlan -> executeCreateMealPlan(action)
+    }
+
+    private suspend fun executeLogMeal(action: AIAction.LogMeal): String {
+        val slot = runCatching { MealSlot.valueOf(action.slot) }.getOrNull()
+            ?: return "Unknown meal slot: ${action.slot}"
+        val today = LocalDate.now().toString()
+        var logged = 0
+        var skipped = 0
+        action.foods.forEach { spec ->
+            val food = foodRepository.searchFoods(spec.name).first().firstOrNull()
+            if (food != null) {
+                mealLogRepository.addFoodToLog(today, slot, food.id, spec.servings)
+                logged++
+            } else {
+                skipped++
+            }
+        }
+        return if (skipped == 0) "Logged $logged item(s) to ${slot.displayName}"
+        else "Logged $logged item(s) to ${slot.displayName} ($skipped not found in your food library)"
+    }
+
+    private suspend fun executeUpdateGoal(action: AIAction.UpdateGoal): String {
+        val updates = mutableListOf<String>()
+        action.targetWeightKg?.let { newTarget ->
+            val current = userPrefs.run {
+                val name = name.first()
+                val age = age.first()
+                val weight = weightKg.first()
+                val height = heightCm.first()
+                val activity = activityLevel.first()
+                val workoutDays = workoutDaysPerWeek.first()
+                val shoulder = hasShoulderRestriction.first()
+                val restrictions = dietaryRestrictions.first()
+                val cuisines = cuisinePreferences.first()
+                updateProfile(name, age, weight, newTarget, height, activity, workoutDays,
+                    shoulder, restrictions, cuisines)
+            }
+            updates.add("target weight → ${newTarget}kg")
+        }
+        action.workoutDaysPerWeek?.let { days ->
+            val name = userPrefs.name.first()
+            val age = userPrefs.age.first()
+            val weight = userPrefs.weightKg.first()
+            val target = userPrefs.targetWeightKg.first()
+            val height = userPrefs.heightCm.first()
+            val activity = userPrefs.activityLevel.first()
+            val shoulder = userPrefs.hasShoulderRestriction.first()
+            val restrictions = userPrefs.dietaryRestrictions.first()
+            val cuisines = userPrefs.cuisinePreferences.first()
+            userPrefs.updateProfile(name, age, weight, target, height, activity, days,
+                shoulder, restrictions, cuisines)
+            updates.add("workout days → $days/week")
+        }
+        return if (updates.isEmpty()) "No goal changes specified"
+        else "Updated: ${updates.joinToString(", ")}"
+    }
+
+    private suspend fun executeCreateWorkoutPlan(action: AIAction.CreateWorkoutPlan): String {
+        val allExercises = workoutRepository.getExercises(ExerciseFilter()).first()
+        val drafts = mutableListOf<TemplateExerciseDraft>()
+        val notFound = mutableListOf<String>()
+        action.exercises.forEachIndexed { index, spec ->
+            val match = allExercises.firstOrNull {
+                it.name.contains(spec.name, ignoreCase = true) ||
+                    spec.name.contains(it.name, ignoreCase = true)
+            }
+            if (match != null) {
+                drafts.add(TemplateExerciseDraft(
+                    exerciseId = match.id,
+                    targetSets = spec.sets,
+                    targetReps = spec.reps
+                ))
+            } else {
+                notFound.add(spec.name)
+            }
+        }
+        if (drafts.isEmpty()) return "No matching exercises found. Add them manually in the Workout screen."
+        workoutRepository.createTemplate(action.title, action.description, drafts)
+        return if (notFound.isEmpty()) "Workout plan \"${action.title}\" created with ${drafts.size} exercises"
+        else "Created \"${action.title}\" with ${drafts.size} exercises. Not found: ${notFound.joinToString()}"
+    }
+
+    private suspend fun executeCreateMealPlan(action: AIAction.CreateMealPlan): String {
+        val draftSlots = mutableMapOf<Int, MutableMap<MealSlot, MutableList<Pair<Long, Double>>>>()
+        var totalLogged = 0
+        var totalSkipped = 0
+
+        action.slots.forEachIndexed { dayIndex, slotSpec ->
+            val slot = runCatching { MealSlot.valueOf(slotSpec.slot) }.getOrNull() ?: return@forEachIndexed
+            val dayMap = draftSlots.getOrPut(dayIndex) { mutableMapOf() }
+            val foodPairs = mutableListOf<Pair<Long, Double>>()
+            slotSpec.foods.forEach { spec ->
+                val food = foodRepository.searchFoods(spec.name).first().firstOrNull()
+                if (food != null) {
+                    foodPairs.add(food.id to spec.servings)
+                    totalLogged++
+                } else {
+                    totalSkipped++
+                }
+            }
+            if (foodPairs.isNotEmpty()) dayMap[slot] = foodPairs.toMutableList()
+        }
+
+        if (draftSlots.isEmpty()) return "No foods found for the meal plan. Try adding foods to your library first."
+        mealPlanRepository.createPlan(action.title, action.description, "Mixed", draftSlots)
+        return if (totalSkipped == 0) "Meal plan \"${action.title}\" created"
+        else "Meal plan \"${action.title}\" created ($totalSkipped foods not found in library)"
+    }
+
+    private fun stripActionBlock(text: String): String =
+        text.replace(Regex("<ACTION>[\\s\\S]*?</ACTION>", RegexOption.IGNORE_CASE), "").trim()
+
+    private fun parseActionBlock(text: String): AIAction? {
+        val match = Regex("<ACTION>([\\s\\S]*?)</ACTION>", RegexOption.IGNORE_CASE)
+            .find(text) ?: return null
+        return runCatching {
+            val json = match.groupValues[1].trim()
+            val obj = actionJson.parseToJsonElement(json).jsonObject
+            when (obj["type"]?.jsonPrimitive?.content) {
+                "LOG_MEAL" -> AIAction.LogMeal(
+                    slot = obj["slot"]?.jsonPrimitive?.content ?: "LUNCH",
+                    foods = obj["foods"]?.jsonArray?.map {
+                        val f = it.jsonObject
+                        FoodSpec(
+                            name = f["name"]?.jsonPrimitive?.content ?: "",
+                            servings = f["servings"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 1.0
+                        )
+                    } ?: emptyList()
+                )
+                "UPDATE_GOAL" -> AIAction.UpdateGoal(
+                    targetWeightKg = obj["targetWeightKg"]?.jsonPrimitive?.content?.toDoubleOrNull(),
+                    workoutDaysPerWeek = obj["workoutDaysPerWeek"]?.jsonPrimitive?.content?.toIntOrNull()
+                )
+                "CREATE_WORKOUT_PLAN" -> AIAction.CreateWorkoutPlan(
+                    title = obj["title"]?.jsonPrimitive?.content ?: "My Plan",
+                    description = obj["description"]?.jsonPrimitive?.content,
+                    exercises = obj["exercises"]?.jsonArray?.map {
+                        val e = it.jsonObject
+                        ExerciseSpec(
+                            name = e["name"]?.jsonPrimitive?.content ?: "",
+                            sets = e["sets"]?.jsonPrimitive?.content?.toIntOrNull() ?: 3,
+                            reps = e["reps"]?.jsonPrimitive?.content ?: "8-12"
+                        )
+                    } ?: emptyList()
+                )
+                "CREATE_MEAL_PLAN" -> AIAction.CreateMealPlan(
+                    title = obj["title"]?.jsonPrimitive?.content ?: "My Meal Plan",
+                    description = obj["description"]?.jsonPrimitive?.content,
+                    slots = obj["slots"]?.jsonArray?.map {
+                        val s = it.jsonObject
+                        MealSlotSpec(
+                            slot = s["slot"]?.jsonPrimitive?.content ?: "LUNCH",
+                            foods = s["foods"]?.jsonArray?.map { f ->
+                                FoodSpec(
+                                    name = f.jsonObject["name"]?.jsonPrimitive?.content ?: "",
+                                    servings = f.jsonObject["servings"]?.jsonPrimitive?.content
+                                        ?.toDoubleOrNull() ?: 1.0
+                                )
+                            } ?: emptyList()
+                        )
+                    } ?: emptyList()
+                )
+                else -> null
+            }
+        }.getOrNull()
     }
 
     private suspend fun buildUserContext(): String {
@@ -115,15 +354,15 @@ class AICoachViewModel @Inject constructor(
         val target = userPrefs.targetWeightKg.first()
         val restrictions = userPrefs.dietaryRestrictions.first()
         val shoulder = userPrefs.hasShoulderRestriction.first()
+        val workoutDays = userPrefs.workoutDaysPerWeek.first()
         val today = LocalDate.now().toString()
         val dayLog = mealLogRepository.getDayLog(today).first()
 
         return buildString {
-            appendLine("You are Reps, an AI fitness and nutrition coach. Be concise and actionable.")
-            appendLine("User profile: name=$name, current=${weight}kg, target=${target}kg,")
-            appendLine("dietary restrictions=${restrictions.joinToString()}, cuisine preference=South Indian,")
-            appendLine("shoulder restriction=$shoulder.")
-            append("Today's macros: ${dayLog.totalCalories.toInt()}kcal, ${dayLog.totalProtein.toInt()}g protein.")
+            appendLine("User: $name, weight=${weight}kg, target=${target}kg, workoutDays=$workoutDays/week")
+            appendLine("Dietary restrictions: ${restrictions.joinToString().ifBlank { "none" }}")
+            appendLine("Shoulder restriction: $shoulder")
+            append("Today: ${dayLog.totalCalories.toInt()} kcal eaten, ${dayLog.totalProtein.toInt()}g protein")
         }
     }
 }

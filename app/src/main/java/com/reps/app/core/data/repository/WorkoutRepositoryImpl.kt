@@ -220,6 +220,9 @@ class WorkoutRepositoryImpl @Inject constructor(
         database.workoutTemplateDao().softDelete(templateId)
     }
 
+    override suspend fun getPersonalRecord(exerciseId: Long): Double? =
+        database.workoutSetDao().getMaxWeight(exerciseId)
+
     private suspend fun insertDraftExercises(templateId: Long, exercises: List<TemplateExerciseDraft>) {
         val entities = exercises.mapIndexed { index, draft ->
             WorkoutTemplateExerciseEntity(

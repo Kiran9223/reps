@@ -29,10 +29,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.reps.app.ai.AIAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -173,6 +182,15 @@ fun AICoachScreen(
                         TypingIndicator()
                     }
                 }
+            }
+
+            state.pendingAction?.let { action ->
+                ActionCard(
+                    action = action,
+                    isConfirming = state.isConfirmingAction,
+                    onConfirm = viewModel::confirmAction,
+                    onDismiss = viewModel::dismissAction
+                )
             }
 
             ChatInputBar(
@@ -367,6 +385,132 @@ private fun ChatInputBar(
                 tint = if (text.isNotBlank() && !isSending) MaterialTheme.colorScheme.onPrimary
                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun ActionCard(
+    action: AIAction,
+    isConfirming: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = when (action) {
+                        is AIAction.CreateWorkoutPlan -> Icons.Default.FitnessCenter
+                        else -> Icons.Default.Restaurant
+                    },
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = when (action) {
+                        is AIAction.LogMeal -> "Log to ${action.slot.replace("_", " ").lowercase().replaceFirstChar { it.uppercaseChar() }}"
+                        is AIAction.UpdateGoal -> "Update Goal"
+                        is AIAction.CreateWorkoutPlan -> action.title
+                        is AIAction.CreateMealPlan -> action.title
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp))
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
+            when (action) {
+                is AIAction.LogMeal -> action.foods.forEach { food ->
+                    Text("• ${food.servings}× ${food.name}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                is AIAction.UpdateGoal -> {
+                    action.targetWeightKg?.let {
+                        Text("• Target weight → ${it}kg",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    action.workoutDaysPerWeek?.let {
+                        Text("• Workout days → $it/week",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                is AIAction.CreateWorkoutPlan -> {
+                    action.description?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    action.exercises.take(4).forEach { ex ->
+                        Text("• ${ex.name} — ${ex.sets}×${ex.reps}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (action.exercises.size > 4) {
+                        Text("  + ${action.exercises.size - 4} more",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline)
+                    }
+                }
+                is AIAction.CreateMealPlan -> {
+                    action.description?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    action.slots.take(3).forEach { slot ->
+                        Text("• ${slot.slot}: ${slot.foods.joinToString { it.name }}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (action.slots.size > 3) {
+                        Text("  + ${action.slots.size - 3} more slots",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline)
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f),
+                    enabled = !isConfirming) {
+                    Text("Dismiss", style = MaterialTheme.typography.labelMedium)
+                }
+                Button(onClick = onConfirm, modifier = Modifier.weight(1f),
+                    enabled = !isConfirming) {
+                    if (isConfirming) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null,
+                            modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Confirm", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
         }
     }
 }

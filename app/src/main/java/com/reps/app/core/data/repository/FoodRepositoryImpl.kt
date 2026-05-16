@@ -114,4 +114,7 @@ class FoodRepositoryImpl @Inject constructor(
         foodItemDao.getCustom()
             .map { entities -> entities.map { it.toDomainModel() } }
             .flowOn(ioDispatcher)
+
+    override suspend fun deleteCustomFood(id: Long) =
+        withContext(ioDispatcher) { foodItemDao.softDelete(id) }
 }

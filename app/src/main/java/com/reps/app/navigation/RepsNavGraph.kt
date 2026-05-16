@@ -30,6 +30,7 @@ import com.reps.app.feature.settings.SettingsScreen
 import com.reps.app.feature.workout.ActiveWorkoutScreen
 import com.reps.app.feature.workout.CreateWorkoutTemplateScreen
 import com.reps.app.feature.workout.ExerciseLibraryScreen
+import com.reps.app.feature.workout.WorkoutHistoryScreen
 import com.reps.app.feature.workout.WorkoutLogScreen
 
 @Composable
@@ -64,6 +65,9 @@ fun RepsNavGraph(
                 onNavigateToActiveWorkout = { workoutLogId ->
                     navController.navigate(Screen.ActiveWorkout.createRoute(workoutLogId))
                 },
+                onNavigateToWorkoutHistory = { workoutLogId ->
+                    navController.navigate(Screen.WorkoutHistory.createRoute(workoutLogId))
+                },
                 onNavigateToExerciseLibrary = {
                     navController.navigate(Screen.ExerciseLibrary.createRoute())
                 },
@@ -85,6 +89,15 @@ fun RepsNavGraph(
             ActiveWorkoutScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
+        }
+
+        composable(
+            route = Screen.WorkoutHistory.route,
+            arguments = listOf(
+                navArgument("workoutLogId") { type = NavType.LongType }
+            )
+        ) {
+            WorkoutHistoryScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(

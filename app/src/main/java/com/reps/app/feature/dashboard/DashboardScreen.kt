@@ -26,9 +26,11 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,7 +63,11 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -203,10 +209,19 @@ fun DashboardScreen(
                     onNavigateToNaturalLanguage(viewModel.getSelectedDateStr(), slot.name)
                 },
                 onDeleteEntry = viewModel::onSwipeToDelete,
+                onEditEntry = viewModel::openEditEntry,
                 onSuggestMeal = viewModel::requestMealSuggestion,
                 onAddSuggestion = viewModel::addSuggestedMealToLog
             )
         }
+    }
+
+    state.editingEntry?.let { entry ->
+        ServingsEditDialog(
+            entry = entry,
+            onDismiss = viewModel::closeEditEntry,
+            onSave = viewModel::saveEditedServings
+        )
     }
 }
 
@@ -251,7 +266,7 @@ private fun DateNavigationHeader(
 private fun TodayTab(
     state: DashboardUiState,
     onSlotClick: (MealSlot) -> Unit,
-    onAddWater: () -> Unit,
+    onAddWater: (Int) -> Unit,
     onNavigateToProgress: () -> Unit,
     onRefreshInsight: () -> Unit
 ) {
@@ -370,6 +385,7 @@ private fun MacroRingSection(macros: DayMacros, modifier: Modifier = Modifier) {
 
 @Composable
 private fun MacroLegendRow(color: Color, label: String, consumed: Int, target: Int) {
+    val remaining = target - consumed
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
@@ -384,6 +400,19 @@ private fun MacroLegendRow(color: Color, label: String, consumed: Int, target: I
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.SemiBold
             )
+            if (remaining > 0) {
+                Text(
+                    stringResource(R.string.dashboard_macro_remaining, remaining),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    stringResource(R.string.dashboard_macro_goal_met),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF4CAF50)
+                )
+            }
         }
     }
 }
@@ -393,7 +422,7 @@ private fun CalorieWaterSection(
     macros: DayMacros,
     waterMl: Int,
     waterTarget: Int,
-    onAddWater: () -> Unit,
+    onAddWater: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -424,32 +453,36 @@ private fun CalorieWaterSection(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.dashboard_water), style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            stringResource(R.string.dashboard_water_format, waterMl, waterTarget),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    val waterProgress = if (waterTarget > 0) (waterMl.toFloat() / waterTarget).coerceAtMost(1f) else 0f
-                    LinearProgressIndicator(
-                        progress = { waterProgress },
-                        modifier = Modifier.fillMaxWidth().height(6.dp),
-                        color = COLOR_CARBS,
-                        trackColor = surfaceVariant
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.dashboard_water), style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.dashboard_water_format, waterMl, waterTarget),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-                Spacer(Modifier.width(12.dp))
-                OutlinedButton(
-                    onClick = onAddWater,
-                    modifier = Modifier.height(36.dp),
-                    shape = RoundedCornerShape(8.dp)
+                val waterProgress = if (waterTarget > 0) (waterMl.toFloat() / waterTarget).coerceAtMost(1f) else 0f
+                LinearProgressIndicator(
+                    progress = { waterProgress },
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    color = COLOR_CARBS,
+                    trackColor = surfaceVariant
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(stringResource(R.string.dashboard_add_water), style = MaterialTheme.typography.labelSmall)
+                    TextButton(onClick = { onAddWater(200) }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.dashboard_add_water_200), style = MaterialTheme.typography.labelSmall)
+                    }
+                    TextButton(onClick = { onAddWater(500) }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.dashboard_add_water_500), style = MaterialTheme.typography.labelSmall)
+                    }
+                    TextButton(onClick = { onAddWater(1000) }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.dashboard_add_water_1l), style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }
@@ -672,6 +705,7 @@ private fun MealSlotSheet(
     onScanBarcode: () -> Unit,
     onNaturalLanguage: () -> Unit,
     onDeleteEntry: (Long) -> Unit,
+    onEditEntry: (LoggedFood) -> Unit,
     onSuggestMeal: () -> Unit,
     onAddSuggestion: () -> Unit
 ) {
@@ -707,7 +741,8 @@ private fun MealSlotSheet(
             slotLog.entries.forEach { entry ->
                 SwipeToDeleteEntry(
                     entry = entry,
-                    onDelete = { onDeleteEntry(entry.entryId) }
+                    onDelete = { onDeleteEntry(entry.entryId) },
+                    onEdit = { onEditEntry(entry) }
                 )
             }
         }
@@ -806,7 +841,8 @@ private fun MealSlotSheet(
 @Composable
 private fun SwipeToDeleteEntry(
     entry: LoggedFood,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -832,6 +868,7 @@ private fun SwipeToDeleteEntry(
         }
     ) {
         Card(
+            onClick = onEdit,
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(0.dp)
@@ -936,6 +973,50 @@ private fun GoalProgressCard(
             }
         }
     }
+}
+
+@Composable
+private fun ServingsEditDialog(
+    entry: LoggedFood,
+    onDismiss: () -> Unit,
+    onSave: (entryId: Long, servings: Double) -> Unit
+) {
+    var servingsText by remember(entry.entryId) {
+        val initial = if (entry.servingMultiplier % 1.0 == 0.0)
+            entry.servingMultiplier.toInt().toString()
+        else "%.1f".format(entry.servingMultiplier)
+        mutableStateOf(initial)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(entry.food.name, style = MaterialTheme.typography.titleMedium) },
+        text = {
+            OutlinedTextField(
+                value = servingsText,
+                onValueChange = { servingsText = it },
+                label = { Text(stringResource(R.string.edit_servings_label)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    servingsText.toDoubleOrNull()?.takeIf { it > 0 }?.let {
+                        onSave(entry.entryId, it)
+                    }
+                }
+            ) {
+                Text(stringResource(R.string.edit_servings_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.edit_servings_cancel))
+            }
+        }
+    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0A0A)

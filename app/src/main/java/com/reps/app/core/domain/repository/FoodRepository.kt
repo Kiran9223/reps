@@ -11,4 +11,5 @@ interface FoodRepository {
     fun getRecentFoods(): Flow<List<FoodItem>>
     fun getFoodsByCuisineTag(tag: String): Flow<List<FoodItem>>
     fun getCustomFoods(): Flow<List<FoodItem>>
+    suspend fun deleteCustomFood(id: Long)
 }

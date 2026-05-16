@@ -32,7 +32,8 @@ data class ActiveWorkoutUiState(
     val restSecondsRemaining: Int = 0,
     val isResting: Boolean = false,
     val isFinishing: Boolean = false,
-    val shoulderWarning: ShoulderWarning? = null
+    val shoulderWarning: ShoulderWarning? = null,
+    val personalRecords: Map<Long, Double> = emptyMap()
 )
 
 @HiltViewModel
@@ -48,27 +49,38 @@ class ActiveWorkoutViewModel @Inject constructor(
     private val _isResting = MutableStateFlow(false)
     private val _isFinishing = MutableStateFlow(false)
     private val _shoulderWarning = MutableStateFlow<ShoulderWarning?>(null)
+    private val _personalRecords = MutableStateFlow<Map<Long, Double>>(emptyMap())
     private var restJob: Job? = null
 
     init {
         checkShoulderSafety()
+        loadPersonalRecords()
     }
 
     val uiState: StateFlow<ActiveWorkoutUiState> = combine(
-        workoutRepository.getSession(workoutLogId),
-        _restSecondsRemaining,
-        _isResting,
-        _isFinishing,
-        _shoulderWarning
-    ) { session, restSecs, isResting, isFinishing, warning ->
+        combine(workoutRepository.getSession(workoutLogId), _restSecondsRemaining, _isResting) { s, r, i -> Triple(s, r, i) },
+        combine(_isFinishing, _shoulderWarning, _personalRecords) { f, w, pr -> Triple(f, w, pr) }
+    ) { (session, restSecs, isResting), (isFinishing, warning, prs) ->
         ActiveWorkoutUiState(
             session = session,
             restSecondsRemaining = restSecs,
             isResting = isResting,
             isFinishing = isFinishing,
-            shoulderWarning = warning
+            shoulderWarning = warning,
+            personalRecords = prs
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActiveWorkoutUiState())
+
+    private fun loadPersonalRecords() {
+        viewModelScope.launch {
+            val session = workoutRepository.getSession(workoutLogId).first { it != null } ?: return@launch
+            val records = session.exercises.mapNotNull { sessionExercise ->
+                val pr = workoutRepository.getPersonalRecord(sessionExercise.exercise.id)
+                pr?.let { sessionExercise.exercise.id to it }
+            }.toMap()
+            _personalRecords.value = records
+        }
+    }
 
     private fun checkShoulderSafety() {
         viewModelScope.launch {

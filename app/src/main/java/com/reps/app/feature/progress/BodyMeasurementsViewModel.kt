@@ -103,6 +103,10 @@ class BodyMeasurementsViewModel @Inject constructor(
 
     fun dismissMotivational() { _showMotivational.value = false }
 
+    fun deleteMeasurement(id: Long) {
+        viewModelScope.launch { progressRepository.deleteMeasurement(id) }
+    }
+
     fun formatDate(epochMillis: Long): String {
         val date = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate()
         val today = LocalDate.now()

@@ -149,6 +149,7 @@ fun ActiveWorkoutScreen(
                     items(session.exercises, key = { it.exercise.id }) { sessionExercise ->
                         ExerciseSetCard(
                             sessionExercise = sessionExercise,
+                            personalRecord = state.personalRecords[sessionExercise.exercise.id],
                             onCompleteSet = { setId, reps, weightKg ->
                                 viewModel.completeSet(setId, reps, weightKg)
                             }
@@ -198,6 +199,7 @@ private fun RestTimerBanner(secondsRemaining: Int, onSkip: () -> Unit) {
 @Composable
 private fun ExerciseSetCard(
     sessionExercise: SessionExercise,
+    personalRecord: Double?,
     onCompleteSet: (setId: Long, reps: Int?, weightKg: Double?) -> Unit
 ) {
     val exercise = sessionExercise.exercise
@@ -216,14 +218,28 @@ private fun ExerciseSetCard(
                     text = exercise.name,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
                 )
-                if (!exercise.isShoulderSafe) {
-                    Text(
-                        text = stringResource(R.string.exercise_shoulder_restricted_badge),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (personalRecord != null) {
+                        Text(
+                            text = stringResource(R.string.workout_pr_badge, personalRecord),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    if (!exercise.isShoulderSafe) {
+                        Text(
+                            text = stringResource(R.string.exercise_shoulder_restricted_badge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
             if (exercise.muscleGroups.isNotEmpty()) {

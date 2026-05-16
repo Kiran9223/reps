@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WifiOff
@@ -41,6 +42,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -48,6 +51,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -164,7 +168,15 @@ fun FoodSearchScreen(
                     )
                     else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(state.foods, key = { it.id }) { food ->
-                            FoodItemCard(food = food, onClick = { onFoodClick(food.id) })
+                            if (state.activeTab == FoodTab.CUSTOM) {
+                                SwipeToDeleteFoodCard(
+                                    food = food,
+                                    onClick = { onFoodClick(food.id) },
+                                    onDelete = { viewModel.deleteCustomFood(food.id) }
+                                )
+                            } else {
+                                FoodItemCard(food = food, onClick = { onFoodClick(food.id) })
+                            }
                         }
                         item { Spacer(Modifier.height(88.dp)) }
                     }
@@ -254,6 +266,38 @@ private fun FoodItemCard(food: FoodItem, onClick: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDeleteFoodCard(food: FoodItem, onClick: () -> Unit, onDelete: () -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) { onDelete(); true } else false
+        }
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(end = 20.dp)
+                )
+            }
+        }
+    ) {
+        FoodItemCard(food = food, onClick = onClick)
     }
 }
 

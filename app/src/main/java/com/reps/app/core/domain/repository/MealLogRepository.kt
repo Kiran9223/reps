@@ -11,6 +11,7 @@ interface MealLogRepository {
     fun getDayLog(dateStr: String): Flow<DayLog>
     suspend fun addFoodToLog(date: String, slot: MealSlot, foodItemId: Long, servings: Double)
     suspend fun removeFoodFromLog(entryId: Long)
+    suspend fun updateServings(entryId: Long, servings: Double)
     fun getDayMacros(dateStr: String, targets: MacroTargets): Flow<DayMacros>
     fun getLogHistory(days: Int): Flow<List<DayLog>>
 }

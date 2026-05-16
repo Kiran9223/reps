@@ -33,7 +33,7 @@ class WorkoutViewModel @Inject constructor(
 
     val uiState: StateFlow<WorkoutUiState> = combine(
         workoutRepository.getTemplates(),
-        workoutRepository.getWorkoutHistory(limit = 5),
+        workoutRepository.getWorkoutHistory(limit = 20),
         appSettingsDataStore.isShoulderSafeOnly,
         _isStarting
     ) { templates, recent, shoulderSafe, starting ->

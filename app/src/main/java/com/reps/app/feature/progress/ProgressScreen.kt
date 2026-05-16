@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -39,11 +40,14 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -120,7 +124,9 @@ fun ProgressScreen(
             item {
                 WeightChartCard(
                     history = state.weightHistory,
-                    goalProgress = state.goalProgress
+                    goalProgress = state.goalProgress,
+                    onDeleteCheckIn = viewModel::deleteWeightCheckIn,
+                    formatDate = viewModel::formatDate
                 )
             }
             item { StreakSection(streaks = state.streaks) }
@@ -190,8 +196,14 @@ private fun ProgressInsightCard(insight: String, modifier: Modifier = Modifier) 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WeightChartCard(history: List<WeightCheckIn>, goalProgress: GoalProgress?) {
+private fun WeightChartCard(
+    history: List<WeightCheckIn>,
+    goalProgress: GoalProgress?,
+    onDeleteCheckIn: (Long) -> Unit = {},
+    formatDate: (Long) -> String = { it.toString() }
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp)
@@ -274,6 +286,77 @@ private fun WeightChartCard(history: List<WeightCheckIn>, goalProgress: GoalProg
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
+                }
+            }
+
+            if (history.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.checkin_history_heading),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                history.forEach { checkIn ->
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                onDeleteCheckIn(checkIn.id); true
+                            } else false
+                        }
+                    )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(vertical = 2.dp)
+                                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(end = 16.dp)
+                                )
+                            }
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                formatDate(checkIn.date),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    stringResource(R.string.checkin_weight_label) + ": ${checkIn.weightKg}kg",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                checkIn.deltaKg?.let { delta ->
+                                    val color = if (delta < 0) COLOR_PROTEIN else MaterialTheme.colorScheme.error
+                                    val sign = if (delta < 0) "" else "+"
+                                    Text(
+                                        "$sign${String.format("%.1f", delta)}kg",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = color
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 }
             }
         }
