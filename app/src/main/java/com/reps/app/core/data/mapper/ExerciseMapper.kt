@@ -1,14 +1,20 @@
 package com.reps.app.core.data.mapper
 
+import androidx.core.text.HtmlCompat
 import com.reps.app.core.data.entity.ExerciseEntity
 import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.network.dto.ExerciseSeedDto
 import com.reps.app.core.network.dto.WgerExerciseInfoDto
 
+private fun String?.stripHtml(): String? =
+    if (isNullOrBlank()) null
+    else HtmlCompat.fromHtml(this, HtmlCompat.FROM_HTML_MODE_COMPACT).toString().trim()
+        .takeIf { it.isNotBlank() }
+
 fun ExerciseEntity.toDomain(): Exercise = Exercise(
     id = id,
     name = name,
-    description = description,
+    description = description.stripHtml(),
     muscleGroups = muscleGroups,
     equipment = equipment,
     isShoulderSafe = isShoulderSafe,

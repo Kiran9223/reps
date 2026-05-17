@@ -42,4 +42,7 @@ interface ExerciseDao {
 
     @Query("SELECT * FROM exercises WHERE name LIKE '%' || :query || '%' AND isDeleted = 0 ORDER BY name ASC LIMIT 1")
     suspend fun searchImmediate(query: String): ExerciseEntity?
+
+    @Query("SELECT * FROM exercises WHERE externalId = :externalId LIMIT 1")
+    suspend fun getByExternalId(externalId: String): ExerciseEntity?
 }

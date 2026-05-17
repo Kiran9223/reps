@@ -175,10 +175,11 @@ End-to-end workout tracking from template creation to set-by-set logging with re
 
 #### 5e. Exercise Library
 - Search by name (instant, debounced)
-- Filter by muscle group (dropdown)
+- Filter by muscle group (chip row)
 - Toggle shoulder-safe filter
 - Tap to view exercise details or select for a template (pick mode)
 - Exercises seeded from a bundled `exercises.json` asset on first install
+- **"Search online" fallback:** if a search returns no local results, a button appears to query the Wger exercise database — found exercises are downloaded, mapped, and saved to Room so they appear immediately and are available offline from that point forward; already-cached exercises are skipped to avoid duplicates
 
 ---
 

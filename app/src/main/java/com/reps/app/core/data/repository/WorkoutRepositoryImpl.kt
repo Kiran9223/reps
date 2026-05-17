@@ -5,6 +5,8 @@ import com.reps.app.core.data.datastore.AppSettingsDataStore
 import com.reps.app.core.data.entity.WorkoutLogEntity
 import com.reps.app.core.data.entity.WorkoutSetEntity
 import com.reps.app.core.data.mapper.toDomain
+import com.reps.app.core.data.mapper.toEntity
+import com.reps.app.core.di.IoDispatcher
 import com.reps.app.core.domain.model.CompletedSet
 import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.ExerciseFilter
@@ -17,9 +19,12 @@ import com.reps.app.core.domain.model.WorkoutSession
 import com.reps.app.core.domain.model.WorkoutSummary
 import com.reps.app.core.domain.model.WorkoutTemplate
 import com.reps.app.core.domain.repository.WorkoutRepository
+import com.reps.app.core.network.api.WgerApiService
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -28,7 +33,9 @@ import javax.inject.Singleton
 @Singleton
 class WorkoutRepositoryImpl @Inject constructor(
     private val database: RepsDatabase,
-    private val appSettingsDataStore: AppSettingsDataStore
+    private val appSettingsDataStore: AppSettingsDataStore,
+    private val wgerApiService: WgerApiService,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : WorkoutRepository {
 
     override fun getExercises(filter: ExerciseFilter): Flow<List<Exercise>> {
@@ -222,6 +229,26 @@ class WorkoutRepositoryImpl @Inject constructor(
 
     override suspend fun getPersonalRecord(exerciseId: Long): Double? =
         database.workoutSetDao().getMaxWeight(exerciseId)
+
+    override suspend fun searchAndImportFromWger(query: String): Result<Int> =
+        withContext(ioDispatcher) {
+            runCatching {
+                val suggestions = wgerApiService.searchExercises(query).suggestions
+                val uniqueIds = suggestions.map { it.data.baseId }.distinct().take(10)
+                var added = 0
+                uniqueIds.forEach { id ->
+                    val existing = database.exerciseDao().getByExternalId(id.toString())
+                    if (existing == null) {
+                        runCatching {
+                            val info = wgerApiService.getExerciseInfo(id)
+                            database.exerciseDao().insert(info.toEntity())
+                            added++
+                        }
+                    }
+                }
+                added
+            }
+        }
 
     private suspend fun insertDraftExercises(templateId: Long, exercises: List<TemplateExerciseDraft>) {
         val entities = exercises.mapIndexed { index, draft ->

@@ -22,4 +22,5 @@ interface WorkoutRepository {
     suspend fun updateTemplate(templateId: Long, name: String, description: String?, exercises: List<TemplateExerciseDraft>)
     suspend fun deleteTemplate(templateId: Long)
     suspend fun getPersonalRecord(exerciseId: Long): Double?
+    suspend fun searchAndImportFromWger(query: String): Result<Int>
 }

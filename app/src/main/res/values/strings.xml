@@ -333,7 +333,10 @@
     <!-- Exercise Library screen -->
     <string name="workout_search_hint">Search exercises…</string>
     <string name="workout_shoulder_safe_filter">Shoulder-Safe</string>
-    <string name="workout_library_empty">No exercises found</string>
+    <string name="workout_library_empty">No exercises in library yet</string>
+    <string name="workout_no_results_for">No results for \"%s\"</string>
+    <string name="workout_search_online">Search online</string>
+    <string name="workout_searching_online">Searching…</string>
     <string name="exercise_shoulder_restricted_badge">⚠ Shoulder</string>
 
     <!-- Create / Edit Workout Template -->

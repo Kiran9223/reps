@@ -48,3 +48,21 @@ data class WgerTranslationDto(
     val description: String = "",
     val language: Int = 0
 )
+
+@Serializable
+data class WgerSearchResponse(
+    val suggestions: List<WgerSuggestion> = emptyList()
+)
+
+@Serializable
+data class WgerSuggestion(
+    val value: String = "",
+    val data: WgerSuggestionData = WgerSuggestionData()
+)
+
+@Serializable
+data class WgerSuggestionData(
+    val id: Int = 0,
+    @SerialName("base_id") val baseId: Int = 0,
+    val name: String = ""
+)
