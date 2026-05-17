@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,6 +19,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -27,6 +30,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.reps.app.feature.onboarding.OnboardingScreen
+import com.reps.app.feature.splash.SplashScreen
 import com.reps.app.navigation.BottomNavItem
 import com.reps.app.navigation.RepsNavGraph
 import com.reps.app.navigation.bottomNavItems
@@ -49,6 +53,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun RepsApp(appViewModel: AppViewModel = hiltViewModel()) {
     val isOnboardingComplete by appViewModel.isOnboardingComplete.collectAsStateWithLifecycle()
+    var splashComplete by remember { mutableStateOf(false) }
+
+    if (!splashComplete) {
+        SplashScreen(onComplete = { splashComplete = true })
+        return
+    }
 
     when (isOnboardingComplete) {
         null -> LoadingScreen()
