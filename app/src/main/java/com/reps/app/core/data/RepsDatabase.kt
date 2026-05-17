@@ -8,6 +8,8 @@ import com.reps.app.core.data.dao.AIChatMessageDao
 import com.reps.app.core.data.dao.BodyMeasurementDao
 import com.reps.app.core.data.dao.ExerciseDao
 import com.reps.app.core.data.dao.FoodItemDao
+import com.reps.app.core.data.dao.GroceryItemDao
+import com.reps.app.core.data.dao.GroceryListDao
 import com.reps.app.core.data.dao.MealLogDao
 import com.reps.app.core.data.dao.MealLogEntryDao
 import com.reps.app.core.data.dao.MealPlanSlotDao
@@ -21,6 +23,8 @@ import com.reps.app.core.data.entity.AIChatMessageEntity
 import com.reps.app.core.data.entity.BodyMeasurementEntity
 import com.reps.app.core.data.entity.ExerciseEntity
 import com.reps.app.core.data.entity.FoodItemEntity
+import com.reps.app.core.data.entity.GroceryItemEntity
+import com.reps.app.core.data.entity.GroceryListEntity
 import com.reps.app.core.data.entity.MealLogEntity
 import com.reps.app.core.data.entity.MealLogEntryEntity
 import com.reps.app.core.data.entity.MealPlanSlotEntity
@@ -45,9 +49,11 @@ import com.reps.app.core.data.entity.WorkoutTemplateExerciseEntity
         MealPlanTemplateEntity::class,
         MealPlanSlotEntity::class,
         BodyMeasurementEntity::class,
-        AIChatMessageEntity::class
+        AIChatMessageEntity::class,
+        GroceryListEntity::class,
+        GroceryItemEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -65,4 +71,6 @@ abstract class RepsDatabase : RoomDatabase() {
     abstract fun mealPlanSlotDao(): MealPlanSlotDao
     abstract fun bodyMeasurementDao(): BodyMeasurementDao
     abstract fun aiChatMessageDao(): AIChatMessageDao
+    abstract fun groceryListDao(): GroceryListDao
+    abstract fun groceryItemDao(): GroceryItemDao
 }

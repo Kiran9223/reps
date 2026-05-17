@@ -19,6 +19,7 @@ import com.reps.app.feature.food.CustomFoodCreationScreen
 import com.reps.app.feature.food.FoodDetailScreen
 import com.reps.app.feature.food.FoodSearchScreen
 import com.reps.app.feature.grocery.GroceryListScreen
+import com.reps.app.feature.grocery.GroceryListsScreen
 import com.reps.app.feature.meal.BatchCookScreen
 import com.reps.app.feature.meal.CreateMealPlanScreen
 import com.reps.app.feature.meal.MealLogScreen
@@ -331,6 +332,19 @@ fun RepsNavGraph(
         }
 
         composable(Screen.GroceryList.route) {
+            GroceryListsScreen(
+                onNavigateToDetail = { listId, _ ->
+                    navController.navigate(Screen.GroceryDetail.createRoute(listId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.GroceryDetail.route,
+            arguments = listOf(
+                navArgument("listId") { type = NavType.LongType }
+            )
+        ) {
             GroceryListScreen(onNavigateBack = { navController.popBackStack() })
         }
 

@@ -7,9 +7,7 @@ import com.reps.app.core.data.datastore.AppSettingsDataStore
 import com.reps.app.core.data.entity.MealPlanSlotEntity
 import com.reps.app.core.data.entity.MealPlanTemplateEntity
 import com.reps.app.core.data.mapper.toDomain
-import com.reps.app.core.data.mapper.toGroceryList
 import com.reps.app.core.di.IoDispatcher
-import com.reps.app.core.domain.model.GroceryList
 import com.reps.app.core.domain.model.MealPlanTemplate
 import com.reps.app.core.domain.model.MealSlot
 import com.reps.app.core.domain.repository.MealPlanRepository
@@ -17,7 +15,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -49,15 +46,6 @@ class MealPlanRepositoryImpl @Inject constructor(
             .map { list -> list.map { it.toDomain() } }
             .flowOn(ioDispatcher)
 
-    override fun getGroceryList(templateId: Long): Flow<GroceryList> =
-        combine(
-            templateDao.getByIdWithSlots(templateId),
-            appSettingsDataStore.groceryBoughtKeys
-        ) { templateWithSlots, boughtKeys ->
-            templateWithSlots?.toGroceryList(boughtKeys)
-                ?: GroceryList(templateId, "", emptyMap())
-        }.flowOn(ioDispatcher)
-
     override suspend fun setActivePlan(templateId: Long) {
         withContext(ioDispatcher) {
             appSettingsDataStore.setActiveMealPlanId(templateId)
@@ -85,12 +73,6 @@ class MealPlanRepositoryImpl @Inject constructor(
         withContext(ioDispatcher) {
             val slot = slotDao.getById(slotId) ?: return@withContext
             slotDao.update(slot.copy(foodItemId = foodItemId, servingMultiplier = servingMultiplier))
-        }
-    }
-
-    override suspend fun toggleGroceryItemBought(templateId: Long, foodId: Long) {
-        withContext(ioDispatcher) {
-            appSettingsDataStore.toggleGroceryBought("${templateId}_$foodId")
         }
     }
 

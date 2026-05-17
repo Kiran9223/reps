@@ -149,6 +149,9 @@
     <string name="custom_food_fat_label">Fat (g) *</string>
     <string name="custom_food_fiber_label">Fiber (g)</string>
     <string name="custom_food_cuisine_label">Cuisine tags (optional)</string>
+    <string name="custom_food_nutrition_heading">Nutrition (per serving)</string>
+    <string name="custom_food_estimate_ai">Estimate with AI</string>
+    <string name="custom_food_estimating">Estimating…</string>
     <string name="custom_food_save">Save Food</string>
     <string name="custom_food_error_name">Food name is required</string>
     <string name="custom_food_error_serving_desc">Serving description is required</string>
@@ -249,14 +252,25 @@
     <string name="meal_plan_clone">Clone Template</string>
     <string name="meal_plan_cloned">Template cloned!</string>
 
-    <!-- Grocery List screen -->
+    <!-- Grocery Lists screen -->
+    <string name="screen_grocery_lists">Grocery Lists</string>
     <string name="screen_grocery_list">Grocery List</string>
-    <string name="grocery_no_plan">Set an active meal plan to generate your grocery list</string>
+    <string name="grocery_lists_empty">No lists yet. Tap + to create one.</string>
+    <string name="grocery_list_summary">%1$d items · %2$d bought · %3$s</string>
+    <string name="grocery_new_list">New List</string>
+    <string name="grocery_new_list_title">New Grocery List</string>
+    <string name="grocery_list_name_hint">List name…</string>
+    <string name="grocery_create_action">Create</string>
+    <string name="grocery_delete_list_title">Delete List</string>
+    <string name="grocery_delete_list_confirm">Delete \"%1$s\" and all its items?</string>
+    <string name="grocery_delete_action">Delete</string>
+    <string name="grocery_delete_item">Remove item</string>
+    <string name="grocery_detail_empty">Add your first item below.</string>
     <string name="grocery_items_count">%1$d items · %2$d bought</string>
-    <string name="grocery_add_item">Add Item</string>
-    <string name="grocery_add_item_hint">Item name…</string>
+    <string name="grocery_add_item">Add</string>
+    <string name="grocery_add_item_hint">Add item…</string>
     <string name="grocery_share">Share List</string>
-    <string name="grocery_quantity">%1$.0f× %2$s</string>
+    <string name="grocery_add_from_plan">Add from meal plan</string>
 
     <!-- Batch Cook screen -->
     <string name="screen_batch_cook">Batch Cook</string>

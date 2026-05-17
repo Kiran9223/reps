@@ -149,12 +149,8 @@ fun WorkoutLogScreen(
                                 onNavigateToActiveWorkout(id)
                             }
                         },
-                        onEdit = if (template.isCustom) {
-                            { onNavigateToEditTemplate(template.id) }
-                        } else null,
-                        onDelete = if (template.isCustom) {
-                            { templateToDelete = template }
-                        } else null
+                        onEdit = { onNavigateToEditTemplate(template.id) },
+                        onDelete = { templateToDelete = template }
                     )
                 }
             }

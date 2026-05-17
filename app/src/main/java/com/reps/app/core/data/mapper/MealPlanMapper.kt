@@ -2,8 +2,6 @@ package com.reps.app.core.data.mapper
 
 import com.reps.app.core.data.relation.MealPlanTemplateWithSlots
 import com.reps.app.core.domain.model.GroceryCategory
-import com.reps.app.core.domain.model.GroceryItem
-import com.reps.app.core.domain.model.GroceryList
 import com.reps.app.core.domain.model.MealPlanDayPlan
 import com.reps.app.core.domain.model.MealPlanSlotFood
 import com.reps.app.core.domain.model.MealPlanTemplate
@@ -15,8 +13,6 @@ private val DAY_LABELS = mapOf(
     2 to "Wed / Sat",
     3 to "Sunday"
 )
-
-private val DAY_OCCURRENCES = mapOf(0 to 2, 1 to 2, 2 to 2, 3 to 1)
 
 fun MealPlanTemplateWithSlots.toDomain(): MealPlanTemplate {
     val slotsByDay = slots.groupBy { it.slot.dayOfWeek }
@@ -50,44 +46,6 @@ fun MealPlanTemplateWithSlots.toDomain(): MealPlanTemplate {
         cuisineType = template.cuisineType,
         days = days,
         isCustom = template.isCustom
-    )
-}
-
-fun MealPlanTemplateWithSlots.toGroceryList(boughtKeys: Set<String>): GroceryList {
-    data class Agg(val name: String, val servingDescription: String, var totalMultiplier: Double = 0.0)
-
-    val agg = mutableMapOf<Long, Agg>()
-    for (swf in slots) {
-        val occurrences = DAY_OCCURRENCES[swf.slot.dayOfWeek] ?: 1
-        val existing = agg[swf.food.id]
-        if (existing != null) {
-            existing.totalMultiplier += swf.slot.servingMultiplier * occurrences
-        } else {
-            agg[swf.food.id] = Agg(
-                name = swf.food.name,
-                servingDescription = swf.food.servingDescription,
-                totalMultiplier = swf.slot.servingMultiplier * occurrences
-            )
-        }
-    }
-
-    val items = agg.entries.map { (foodId, entry) ->
-        val boughtKey = "${template.id}_$foodId"
-        GroceryItem(
-            id = boughtKey,
-            name = entry.name,
-            quantity = entry.totalMultiplier,
-            servingDescription = entry.servingDescription,
-            category = groceryCategoryFor(entry.name),
-            isBought = boughtKey in boughtKeys,
-            isCustom = false
-        )
-    }
-
-    return GroceryList(
-        templateId = template.id,
-        templateName = template.name,
-        itemsByCategory = items.groupBy { it.category }
     )
 }
 

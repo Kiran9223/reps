@@ -9,6 +9,8 @@ import com.reps.app.core.data.dao.AIChatMessageDao
 import com.reps.app.core.data.dao.BodyMeasurementDao
 import com.reps.app.core.data.dao.ExerciseDao
 import com.reps.app.core.data.dao.FoodItemDao
+import com.reps.app.core.data.dao.GroceryItemDao
+import com.reps.app.core.data.dao.GroceryListDao
 import com.reps.app.core.data.dao.MealLogDao
 import com.reps.app.core.data.dao.MealLogEntryDao
 import com.reps.app.core.data.dao.MealPlanSlotDao
@@ -24,6 +26,33 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS `grocery_lists` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `name` TEXT NOT NULL,
+                `createdAt` INTEGER NOT NULL
+            )"""
+        )
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS `grocery_items` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `listId` INTEGER NOT NULL,
+                `name` TEXT NOT NULL,
+                `category` TEXT NOT NULL,
+                `quantity` REAL NOT NULL DEFAULT 1.0,
+                `isBought` INTEGER NOT NULL DEFAULT 0,
+                `addedAt` INTEGER NOT NULL,
+                FOREIGN KEY(`listId`) REFERENCES `grocery_lists`(`id`) ON DELETE CASCADE
+            )"""
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_grocery_items_listId` ON `grocery_items` (`listId`)"
+        )
+    }
+}
 
 private val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -69,7 +98,7 @@ object DatabaseModule {
     @Singleton
     fun provideRepsDatabase(@ApplicationContext context: Context): RepsDatabase =
         Room.databaseBuilder(context, RepsDatabase::class.java, "reps.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
     @Provides fun provideFoodItemDao(db: RepsDatabase): FoodItemDao = db.foodItemDao()
@@ -85,4 +114,6 @@ object DatabaseModule {
     @Provides fun provideMealPlanSlotDao(db: RepsDatabase): MealPlanSlotDao = db.mealPlanSlotDao()
     @Provides fun provideBodyMeasurementDao(db: RepsDatabase): BodyMeasurementDao = db.bodyMeasurementDao()
     @Provides fun provideAIChatMessageDao(db: RepsDatabase): AIChatMessageDao = db.aiChatMessageDao()
+    @Provides fun provideGroceryListDao(db: RepsDatabase): GroceryListDao = db.groceryListDao()
+    @Provides fun provideGroceryItemDao(db: RepsDatabase): GroceryItemDao = db.groceryItemDao()
 }

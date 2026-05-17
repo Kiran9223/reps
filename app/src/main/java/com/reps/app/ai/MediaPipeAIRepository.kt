@@ -139,6 +139,35 @@ Respond ONLY with JSON, no preamble:
             }
         }
 
+    override suspend fun categorizeGroceryItem(itemName: String): Result<String> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val prompt = """
+Categorize this grocery item into exactly one of: PROTEIN, DAIRY, PRODUCE, FROZEN, PANTRY
+Item: "$itemName"
+Respond with ONLY the category name, nothing else.
+                """.trimIndent()
+                val response = llmInference.generateResponse(prompt).trim().uppercase()
+                val valid = setOf("PROTEIN", "DAIRY", "PRODUCE", "FROZEN", "PANTRY")
+                if (response in valid) response else "PANTRY"
+            }
+        }
+
+    override suspend fun estimateNutrition(foodDescription: String): Result<EstimatedNutrition> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val prompt = """
+You are a nutrition expert. Estimate the nutrition for this food as accurately as possible.
+Food: "$foodDescription"
+Use standard South Indian serving sizes if applicable (e.g. 1 poori ≈ 45g).
+Respond ONLY with valid JSON, no preamble:
+{"calories":250,"protein":5.0,"carbs":38.0,"fat":10.0,"fiber":2.0,"serving_g":180}
+                """.trimIndent()
+                val response = llmInference.generateResponse(prompt)
+                parseNutrition(response)
+            }
+        }
+
     override fun isAvailable(): Boolean = true
 
     private fun parseTokenArray(response: String): List<ParsedMealToken> {
@@ -239,6 +268,19 @@ Respond ONLY with JSON, no preamble:
             }.getOrNull()
         }?.filter { it.slots.isNotEmpty() } ?: emptyList()
         return ParsedMealPlan(name, days)
+    }
+
+    private fun parseNutrition(response: String): EstimatedNutrition {
+        val jsonStr = extractJson(response, '{', '}')
+        val obj = json.parseToJsonElement(jsonStr).jsonObject
+        return EstimatedNutrition(
+            calories = obj["calories"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+            proteinG = obj["protein"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+            carbsG = obj["carbs"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+            fatG = obj["fat"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+            fiberG = obj["fiber"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
+            servingGrams = obj["serving_g"]?.jsonPrimitive?.doubleOrNull ?: 100.0
+        )
     }
 
     private fun extractJson(text: String, open: Char, close: Char): String {

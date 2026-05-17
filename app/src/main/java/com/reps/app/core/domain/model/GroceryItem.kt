@@ -1,11 +1,10 @@
 package com.reps.app.core.domain.model
 
-data class GroceryItem(
-    val id: String,
+data class SavedGroceryItem(
+    val id: Long,
+    val listId: Long,
     val name: String,
-    val quantity: Double,
-    val servingDescription: String,
     val category: GroceryCategory,
-    val isBought: Boolean = false,
-    val isCustom: Boolean = false
+    val quantity: Double,
+    val isBought: Boolean
 )

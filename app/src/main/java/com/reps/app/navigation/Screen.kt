@@ -46,6 +46,9 @@ sealed class Screen(val route: String) {
     object Progress : Screen("progress")
     object BodyMeasurements : Screen("body_measurements")
     object GroceryList : Screen("grocery_list")
+    object GroceryDetail : Screen("grocery_detail/{listId}") {
+        fun createRoute(listId: Long) = "grocery_detail/$listId"
+    }
     object MealPlan : Screen("meal_plan")
     object BatchCook : Screen("batch_cook")
     object Settings : Screen("settings")

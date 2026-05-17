@@ -73,5 +73,65 @@ class RuleBasedAIRepository : AIRepository {
     override suspend fun parseMealPlanText(text: String): Result<ParsedMealPlan> =
         Result.failure(UnsupportedOperationException("AI model not available"))
 
+    override suspend fun estimateNutrition(foodDescription: String): Result<EstimatedNutrition> {
+        val n = foodDescription.lowercase()
+        val countMatch = Regex("^(\\d+)").find(n.trim())
+        val count = countMatch?.groupValues?.get(1)?.toDoubleOrNull() ?: 1.0
+
+        data class MacroRow(val cal: Double, val pro: Double, val car: Double, val fat: Double, val fib: Double, val g: Double)
+
+        val row = when {
+            n.contains("poori") || n.contains("puri") -> MacroRow(135.0, 2.0, 18.0, 6.0, 1.0, 45.0)
+            n.contains("idli") -> MacroRow(39.0, 2.0, 8.0, 0.4, 0.5, 30.0)
+            n.contains("dosa") -> MacroRow(120.0, 3.0, 22.0, 3.0, 1.0, 80.0)
+            n.contains("roti") || n.contains("chapati") -> MacroRow(70.0, 3.0, 14.0, 1.0, 2.0, 35.0)
+            n.contains("rice") || n.contains("chawal") -> MacroRow(130.0, 2.7, 28.0, 0.3, 0.4, 75.0)
+            n.contains("sambar") -> MacroRow(50.0, 3.0, 7.0, 1.5, 2.0, 100.0)
+            n.contains("egg") -> MacroRow(78.0, 6.0, 0.6, 5.0, 0.0, 50.0)
+            n.contains("chicken") -> MacroRow(165.0, 31.0, 0.0, 3.6, 0.0, 100.0)
+            n.contains("paratha") -> MacroRow(180.0, 4.0, 24.0, 8.0, 2.0, 70.0)
+            n.contains("upma") -> MacroRow(150.0, 4.0, 24.0, 5.0, 1.5, 120.0)
+            n.contains("vada") || n.contains("wada") -> MacroRow(100.0, 3.0, 12.0, 5.0, 1.0, 40.0)
+            else -> MacroRow(150.0, 5.0, 20.0, 5.0, 2.0, 100.0)
+        }
+
+        return Result.success(
+            EstimatedNutrition(
+                calories = row.cal * count,
+                proteinG = row.pro * count,
+                carbsG = row.car * count,
+                fatG = row.fat * count,
+                fiberG = row.fib * count,
+                servingGrams = row.g * count
+            )
+        )
+    }
+
+    override suspend fun categorizeGroceryItem(itemName: String): Result<String> {
+        val n = itemName.lowercase()
+        val category = when {
+            n.contains("chicken") || n.contains("egg") || n.contains("fish") ||
+            n.contains("paneer") || n.contains("soya") || n.contains("tofu") ||
+            n.contains("whey") || n.contains("tuna") || n.contains("turkey") ||
+            n.contains("mutton") || n.contains("prawn") || n.contains("dal") ||
+            n.contains("lentil") || n.contains("bean") || n.contains("meat") -> "PROTEIN"
+
+            n.contains("milk") || n.contains("curd") || n.contains("yogurt") ||
+            n.contains("butter") || n.contains("ghee") || n.contains("cream") ||
+            n.contains("cheese") || n.contains("lassi") || n.contains("paneer") -> "DAIRY"
+
+            n.contains("spinach") || n.contains("broccoli") || n.contains("tomato") ||
+            n.contains("onion") || n.contains("banana") || n.contains("apple") ||
+            n.contains("vegetable") || n.contains("salad") || n.contains("fruit") ||
+            n.contains("carrot") || n.contains("capsicum") || n.contains("mushroom") ||
+            n.contains("potato") || n.contains("cucumber") || n.contains("lettuce") -> "PRODUCE"
+
+            n.contains("frozen") || n.contains("ice cream") -> "FROZEN"
+
+            else -> "PANTRY"
+        }
+        return Result.success(category)
+    }
+
     override fun isAvailable(): Boolean = false
 }

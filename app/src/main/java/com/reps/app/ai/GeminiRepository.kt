@@ -9,6 +9,9 @@ import com.reps.app.core.domain.model.MacroTargets
 import com.reps.app.core.domain.model.MealSlot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 private const val MODEL_NAME = "gemini-2.5-flash"
 
@@ -185,6 +188,45 @@ class GeminiRepository(private val apiKey: String) : AIRepository {
             val cleaned = response.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
             android.util.Log.d("ImportPlan", "Meal raw response: $cleaned")
             planJson.decodeFromString<ParsedMealPlan>(cleaned)
+        }
+    }
+
+    override suspend fun estimateNutrition(foodDescription: String): Result<EstimatedNutrition> {
+        return runCatching {
+            val prompt = """
+                Estimate the nutrition for this food as accurately as possible.
+                Food: "$foodDescription"
+                Use standard South Indian serving sizes if applicable (e.g. 1 poori ≈ 45g).
+                Respond ONLY with valid JSON, no preamble:
+                {"calories":250,"protein":5.0,"carbs":38.0,"fat":10.0,"fiber":2.0,"serving_g":180}
+            """.trimIndent()
+            val json = structuredModel.generateContent(prompt).text?.trim()
+                ?.removePrefix("```json")?.removePrefix("```")?.removeSuffix("```")?.trim()
+                ?: throw Exception("Empty response")
+            kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.let { j ->
+                val obj = j.parseToJsonElement(json).jsonObject
+                EstimatedNutrition(
+                    calories = obj["calories"]?.jsonPrimitive?.double ?: 0.0,
+                    proteinG = obj["protein"]?.jsonPrimitive?.double ?: 0.0,
+                    carbsG = obj["carbs"]?.jsonPrimitive?.double ?: 0.0,
+                    fatG = obj["fat"]?.jsonPrimitive?.double ?: 0.0,
+                    fiberG = obj["fiber"]?.jsonPrimitive?.double ?: 0.0,
+                    servingGrams = obj["serving_g"]?.jsonPrimitive?.double ?: 100.0
+                )
+            }
+        }
+    }
+
+    override suspend fun categorizeGroceryItem(itemName: String): Result<String> {
+        return runCatching {
+            val prompt = """
+                Categorize this grocery item into exactly one of: PROTEIN, DAIRY, PRODUCE, FROZEN, PANTRY
+                Item: "$itemName"
+                Respond with ONLY the category name, nothing else.
+            """.trimIndent()
+            val response = structuredModel.generateContent(prompt).text?.trim()?.uppercase() ?: "PANTRY"
+            val valid = setOf("PROTEIN", "DAIRY", "PRODUCE", "FROZEN", "PANTRY")
+            if (response in valid) response else "PANTRY"
         }
     }
 

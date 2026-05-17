@@ -2,14 +2,18 @@ package com.reps.app.feature.food
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reps.app.ai.AIRepository
+import com.reps.app.core.di.IoDispatcher
 import com.reps.app.core.domain.model.FoodItem
 import com.reps.app.core.domain.repository.FoodRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class CustomFoodFormState(
@@ -23,13 +27,16 @@ data class CustomFoodFormState(
     val fiber: String = "0",
     val selectedCuisineTags: Set<String> = emptySet(),
     val isSubmitting: Boolean = false,
+    val isEstimating: Boolean = false,
     val errorMessage: String? = null,
     val savedFoodId: Long? = null
 )
 
 @HiltViewModel
 class CustomFoodCreationViewModel @Inject constructor(
-    private val foodRepository: FoodRepository
+    private val foodRepository: FoodRepository,
+    private val aiRepository: AIRepository,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val _formState = MutableStateFlow(CustomFoodFormState())
@@ -48,6 +55,44 @@ class CustomFoodCreationViewModel @Inject constructor(
         val tags = state.selectedCuisineTags.toMutableSet()
         if (tag in tags) tags.remove(tag) else tags.add(tag)
         state.copy(selectedCuisineTags = tags)
+    }
+
+    fun estimateNutrition() {
+        val description = _formState.value.name.trim()
+        if (description.isBlank()) return
+        viewModelScope.launch {
+            _formState.update { it.copy(isEstimating = true, errorMessage = null) }
+            val result = withContext(ioDispatcher) {
+                aiRepository.estimateNutrition(description)
+            }
+            result.fold(
+                onSuccess = { est ->
+                    _formState.update { state ->
+                        state.copy(
+                            isEstimating = false,
+                            calories = fmt(est.calories),
+                            protein = fmt(est.proteinG),
+                            carbs = fmt(est.carbsG),
+                            fat = fmt(est.fatG),
+                            fiber = fmt(est.fiberG),
+                            servingGrams = fmt(est.servingGrams),
+                            servingDescription = if (state.servingDescription.isBlank())
+                                "${est.servingGrams.toInt()}g" else state.servingDescription
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    _formState.update {
+                        it.copy(isEstimating = false, errorMessage = "Estimation failed: ${e.message}")
+                    }
+                }
+            )
+        }
+    }
+
+    private fun fmt(value: Double): String {
+        return if (value == value.toLong().toDouble()) value.toLong().toString()
+        else "%.1f".format(value)
     }
 
     fun saveFood() {
