@@ -1,6 +1,7 @@
 package com.reps.app.ai
 
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.ResponseStoppedException
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.reps.app.core.domain.model.DayLog
@@ -9,9 +10,11 @@ import com.reps.app.core.domain.model.MealSlot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-private const val MODEL_NAME = "gemini-2.0-flash-lite"
+private const val MODEL_NAME = "gemini-2.5-flash"
 
 class GeminiRepository(private val apiKey: String) : AIRepository {
+
+    private val planJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
     private val chatModel = GenerativeModel(
         modelName = MODEL_NAME,
@@ -27,7 +30,16 @@ class GeminiRepository(private val apiKey: String) : AIRepository {
         apiKey = apiKey,
         generationConfig = generationConfig {
             temperature = 0.2f
-            maxOutputTokens = 512
+            maxOutputTokens = 2048
+        }
+    )
+
+    private val parsingModel = GenerativeModel(
+        modelName = MODEL_NAME,
+        apiKey = apiKey,
+        generationConfig = generationConfig {
+            temperature = 0.1f
+            maxOutputTokens = 8192
         }
     )
 
@@ -42,7 +54,7 @@ class GeminiRepository(private val apiKey: String) : AIRepository {
             apiKey = apiKey,
             generationConfig = generationConfig {
                 temperature = 0.7f
-                maxOutputTokens = 1024
+                maxOutputTokens = 2048
             },
             systemInstruction = content { text(systemPrompt) }
         )
@@ -52,8 +64,12 @@ class GeminiRepository(private val apiKey: String) : AIRepository {
         }
 
         val chat = model.startChat(history = chatHistory)
-        chat.sendMessageStream(userMessage).collect { chunk ->
-            chunk.text?.let { emit(it) }
+        try {
+            chat.sendMessageStream(userMessage).collect { chunk ->
+                chunk.text?.let { emit(it) }
+            }
+        } catch (e: ResponseStoppedException) {
+            // MAX_TOKENS: partial response already emitted, close cleanly
         }
     }
 
@@ -130,6 +146,45 @@ class GeminiRepository(private val apiKey: String) : AIRepository {
                 ?: return Result.success(emptyList())
             kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                 .decodeFromString<List<ExerciseAlternative>>(json)
+        }
+    }
+
+    override suspend fun parseWorkoutPlanText(text: String): Result<ParsedWorkoutPlan> {
+        return runCatching {
+            val prompt = """
+                Parse this workout plan into structured JSON. The text may come from a copied table where columns (Exercise, Sets, Reps, Notes) are merged with no separator — split them correctly using context.
+
+                Input:
+                $text
+
+                Respond ONLY with compact JSON (no newlines, no extra spaces), no preamble. Format:
+                {"name":"Plan Name","days":[{"label":"Day 1 - Push","exercises":[{"name":"Bench Press","sets":4,"reps":"8-12"}]}]}
+            """.trimIndent()
+            val response = parsingModel.generateContent(prompt).text
+                ?: return Result.failure(Exception("Empty response from Gemini"))
+            val cleaned = response.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+            android.util.Log.d("ImportPlan", "Workout raw response: $cleaned")
+            planJson.decodeFromString<ParsedWorkoutPlan>(cleaned)
+        }
+    }
+
+    override suspend fun parseMealPlanText(text: String): Result<ParsedMealPlan> {
+        return runCatching {
+            val prompt = """
+                Parse this meal/diet plan into structured JSON. Map meal times to one of: BREAKFAST, LUNCH, DINNER, SNACKS.
+                The text may be messy or copied from a table — extract all food items with their quantities.
+
+                Input:
+                $text
+
+                Respond ONLY with compact JSON (no newlines, no extra spaces), no preamble. Format:
+                {"name":"Diet Plan","days":[{"label":"Day 1","slots":[{"slot":"BREAKFAST","foods":[{"name":"oats","quantity":1.0,"unit":"cup"}]}]}]}
+            """.trimIndent()
+            val response = parsingModel.generateContent(prompt).text
+                ?: return Result.failure(Exception("Empty response from Gemini"))
+            val cleaned = response.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+            android.util.Log.d("ImportPlan", "Meal raw response: $cleaned")
+            planJson.decodeFromString<ParsedMealPlan>(cleaned)
         }
     }
 

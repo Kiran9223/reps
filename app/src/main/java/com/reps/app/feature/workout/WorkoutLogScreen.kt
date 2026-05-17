@@ -69,6 +69,7 @@ fun WorkoutLogScreen(
     onNavigateToExerciseLibrary: () -> Unit = {},
     onNavigateToCreateTemplate: () -> Unit = {},
     onNavigateToEditTemplate: (templateId: Long) -> Unit = {},
+    onImportPlan: () -> Unit = {},
     viewModel: WorkoutViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,6 +81,12 @@ fun WorkoutLogScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.screen_workout)) },
                 actions = {
+                    TextButton(onClick = onImportPlan) {
+                        Text(
+                            stringResource(R.string.import_plan_action),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     TextButton(onClick = onNavigateToExerciseLibrary) {
                         Text(
                             stringResource(R.string.workout_exercise_library),

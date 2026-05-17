@@ -500,4 +500,23 @@
     <!-- Macro remaining / goal met -->
     <string name="dashboard_macro_remaining">%1$dg left</string>
     <string name="dashboard_macro_goal_met">Goal met ✓</string>
+
+    <!-- Import Plan -->
+    <string name="import_plan_title">Import Plan</string>
+    <string name="import_plan_action">Import</string>
+    <string name="import_plan_type_workout">Workout Plan</string>
+    <string name="import_plan_type_meal">Meal Plan</string>
+    <string name="import_plan_input_label">Paste plan here</string>
+    <string name="import_plan_paste_hint_workout">Day 1 – Push\nBench Press: 4×8–12\nOverhead Press: 3×10\n\nDay 2 – Pull\nDeadlift: 3×5\nBarbell Row: 4×8</string>
+    <string name="import_plan_paste_hint_meal">Breakfast: 3 eggs + 2 rotis\nLunch: 200g chicken curry + rice\nDinner: dal + 2 rotis + salad</string>
+    <string name="import_plan_parse_btn">Parse Plan</string>
+    <string name="import_plan_review_title">Review Parsed Plan</string>
+    <string name="import_plan_plan_name_label">Plan name</string>
+    <string name="import_plan_confirm_btn">Import Plan</string>
+    <string name="import_plan_edit_btn">Edit Input</string>
+    <string name="import_plan_parsing">Parsing plan…</string>
+    <string name="import_plan_saving">Saving…</string>
+    <string name="import_plan_done_btn">Done</string>
+    <string name="import_plan_remove">Remove item</string>
+    <string name="import_plan_remove_day">Remove day</string>
 </resources>

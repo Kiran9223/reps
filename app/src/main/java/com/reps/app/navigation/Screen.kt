@@ -51,4 +51,7 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object AICoach : Screen("ai_coach")
     object More : Screen("more")
+    object ImportPlan : Screen("import_plan?type={type}") {
+        fun createRoute(type: String) = "import_plan?type=$type"
+    }
 }

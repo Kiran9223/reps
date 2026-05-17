@@ -67,5 +67,11 @@ class RuleBasedAIRepository : AIRepository {
         )
     )
 
+    override suspend fun parseWorkoutPlanText(text: String): Result<ParsedWorkoutPlan> =
+        Result.failure(UnsupportedOperationException("AI model not available"))
+
+    override suspend fun parseMealPlanText(text: String): Result<ParsedMealPlan> =
+        Result.failure(UnsupportedOperationException("AI model not available"))
+
     override fun isAvailable(): Boolean = false
 }

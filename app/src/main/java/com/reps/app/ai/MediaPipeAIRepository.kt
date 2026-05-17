@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -112,6 +113,32 @@ No overhead movements. Respond ONLY with JSON:
         }
     }
 
+    override suspend fun parseWorkoutPlanText(text: String): Result<ParsedWorkoutPlan> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val prompt = """
+Parse this workout plan. Extract days with their exercises, sets and reps.
+Text: "$text"
+Respond ONLY with JSON, no preamble:
+{"name":"Plan Name","days":[{"label":"Day 1 - Push","exercises":[{"name":"Bench Press","sets":4,"reps":"8-12"}]}]}
+                """.trimIndent()
+                parseWorkoutPlan(llmInference.generateResponse(prompt))
+            }
+        }
+
+    override suspend fun parseMealPlanText(text: String): Result<ParsedMealPlan> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val prompt = """
+Parse this meal plan. Map meal times to: BREAKFAST, LUNCH, DINNER, or SNACKS.
+Text: "$text"
+Respond ONLY with JSON, no preamble:
+{"name":"Diet Plan","days":[{"label":"Day 1","slots":[{"slot":"BREAKFAST","foods":[{"name":"oats","quantity":1.0,"unit":"cup"}]}]}]}
+                """.trimIndent()
+                parseMealPlan(llmInference.generateResponse(prompt))
+            }
+        }
+
     override fun isAvailable(): Boolean = true
 
     private fun parseTokenArray(response: String): List<ParsedMealToken> {
@@ -151,6 +178,67 @@ No overhead movements. Respond ONLY with JSON:
                 )
             }.getOrNull()
         }.filter { it.name.isNotBlank() }
+    }
+
+    private fun parseWorkoutPlan(response: String): ParsedWorkoutPlan {
+        val jsonStr = extractJson(response, '{', '}')
+        val obj = json.parseToJsonElement(jsonStr).jsonObject
+        val name = obj["name"]?.jsonPrimitive?.content ?: "Imported Workout Plan"
+        val days = obj["days"]?.jsonArray?.mapNotNull { dayEl ->
+            runCatching {
+                val dayObj = dayEl.jsonObject
+                val exercises = dayObj["exercises"]?.jsonArray?.mapNotNull { exEl ->
+                    runCatching {
+                        val exObj = exEl.jsonObject
+                        ParsedExerciseItem(
+                            name = exObj["name"]?.jsonPrimitive?.content.orEmpty(),
+                            sets = exObj["sets"]?.jsonPrimitive?.content?.toIntOrNull() ?: 3,
+                            reps = exObj["reps"]?.jsonPrimitive?.content ?: "10"
+                        )
+                    }.getOrNull()
+                }?.filter { it.name.isNotBlank() } ?: emptyList()
+                ParsedWorkoutDay(
+                    label = dayObj["label"]?.jsonPrimitive?.content ?: "Day",
+                    exercises = exercises
+                )
+            }.getOrNull()
+        }?.filter { it.exercises.isNotEmpty() } ?: emptyList()
+        return ParsedWorkoutPlan(name, days)
+    }
+
+    private fun parseMealPlan(response: String): ParsedMealPlan {
+        val jsonStr = extractJson(response, '{', '}')
+        val obj = json.parseToJsonElement(jsonStr).jsonObject
+        val name = obj["name"]?.jsonPrimitive?.content ?: "Imported Meal Plan"
+        val days = obj["days"]?.jsonArray?.mapNotNull { dayEl ->
+            runCatching {
+                val dayObj = dayEl.jsonObject
+                val slots = dayObj["slots"]?.jsonArray?.mapNotNull { slotEl ->
+                    runCatching {
+                        val slotObj = slotEl.jsonObject
+                        val foods = slotObj["foods"]?.jsonArray?.mapNotNull { foodEl ->
+                            runCatching {
+                                val fObj = foodEl.jsonObject
+                                ParsedMealToken(
+                                    name = fObj["name"]?.jsonPrimitive?.content.orEmpty(),
+                                    quantity = fObj["quantity"]?.jsonPrimitive?.doubleOrNull ?: 1.0,
+                                    unit = fObj["unit"]?.jsonPrimitive?.content ?: "serving"
+                                )
+                            }.getOrNull()
+                        }?.filter { it.name.isNotBlank() } ?: emptyList()
+                        ParsedMealSlotItem(
+                            slot = slotObj["slot"]?.jsonPrimitive?.content ?: "BREAKFAST",
+                            foods = foods
+                        )
+                    }.getOrNull()
+                }?.filter { it.foods.isNotEmpty() } ?: emptyList()
+                ParsedMealDay(
+                    label = dayObj["label"]?.jsonPrimitive?.content ?: "Day 1",
+                    slots = slots
+                )
+            }.getOrNull()
+        }?.filter { it.slots.isNotEmpty() } ?: emptyList()
+        return ParsedMealPlan(name, days)
     }
 
     private fun extractJson(text: String, open: Char, close: Char): String {

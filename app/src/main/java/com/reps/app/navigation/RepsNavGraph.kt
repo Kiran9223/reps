@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.reps.app.feature.ai.AICoachScreen
+import com.reps.app.feature.importplan.ImportPlanScreen
 import com.reps.app.feature.dashboard.DashboardScreen
 import com.reps.app.feature.food.BarcodeScannerScreen
 import com.reps.app.feature.food.CustomFoodCreationScreen
@@ -76,6 +77,9 @@ fun RepsNavGraph(
                 },
                 onNavigateToEditTemplate = { templateId ->
                     navController.navigate(Screen.CreateWorkoutTemplate.createRoute(templateId))
+                },
+                onImportPlan = {
+                    navController.navigate(Screen.ImportPlan.createRoute("WORKOUT"))
                 }
             )
         }
@@ -276,8 +280,20 @@ fun RepsNavGraph(
                 onNavigateToCreatePlan = { navController.navigate(Screen.CreateMealPlan.createRoute()) },
                 onNavigateToEditPlan = { templateId ->
                     navController.navigate(Screen.CreateMealPlan.createRoute(templateId))
+                },
+                onImportPlan = {
+                    navController.navigate(Screen.ImportPlan.createRoute("MEAL"))
                 }
             )
+        }
+
+        composable(
+            route = Screen.ImportPlan.route,
+            arguments = listOf(
+                navArgument("type") { type = NavType.StringType; defaultValue = "WORKOUT" }
+            )
+        ) {
+            ImportPlanScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(

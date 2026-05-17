@@ -68,6 +68,7 @@ fun MealPlanScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCreatePlan: () -> Unit,
     onNavigateToEditPlan: (templateId: Long) -> Unit,
+    onImportPlan: () -> Unit = {},
     viewModel: MealPlanViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -93,6 +94,12 @@ fun MealPlanScreen(
                     }
                 },
                 actions = {
+                    TextButton(onClick = onImportPlan) {
+                        Text(
+                            stringResource(R.string.import_plan_action),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     IconButton(onClick = viewModel::showSwitchDialog) {
                         Icon(Icons.Filled.SwapHoriz, stringResource(R.string.meal_plan_switch_plan))
                     }

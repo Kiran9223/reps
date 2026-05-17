@@ -23,7 +23,18 @@
       "Bash(Get-ChildItem -Path \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\" -Directory)",
       "Bash(Select-Object -ExpandProperty Name)",
       "Bash(dir /s /b \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\")",
-      "Bash(findstr \".kt\")"
+      "Bash(findstr \".kt\")",
+      "Bash(xargs grep -l \"WorkoutLogScreen\")",
+      "Bash(xargs grep -l \"MealPlanScreen\")",
+      "Bash(xargs grep -l \"sealed class Screen\\\\|object Screen\")",
+      "Bash(./gradlew compileDebugKotlin --info)",
+      "Bash(move \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\\\\ImportPlanViewModel.kt\" \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\importplan\\\\ImportPlanViewModel.kt\")",
+      "Bash(move \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\\\\ImportPlanScreen.kt\" \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\importplan\\\\ImportPlanScreen.kt\")",
+      "Bash(New-Item -ItemType Directory -Path \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\importplan\" -Force)",
+      "Bash(Move-Item \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\\\\ImportPlanViewModel.kt\" \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\importplan\\\\ImportPlanViewModel.kt\")",
+      "Bash(Move-Item \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\\\\ImportPlanScreen.kt\" \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\importplan\\\\ImportPlanScreen.kt\")",
+      "Bash(Remove-Item \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\" -Recurse)",
+      "PowerShell(New-Item *)"
     ]
   }
 }
