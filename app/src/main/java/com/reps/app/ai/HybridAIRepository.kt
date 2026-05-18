@@ -1,8 +1,11 @@
 package com.reps.app.ai
 
 import com.reps.app.core.domain.model.DayLog
+import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.MacroTargets
 import com.reps.app.core.domain.model.MealSlot
+import com.reps.app.core.domain.model.TemplateExerciseDraft
+import com.reps.app.core.domain.model.WorkoutFocus
 import kotlinx.coroutines.flow.Flow
 
 class HybridAIRepository(
@@ -41,6 +44,13 @@ class HybridAIRepository(
     override suspend fun parseMealPlanText(text: String) = gemini.parseMealPlanText(text)
     override suspend fun categorizeGroceryItem(itemName: String) = onDevice.categorizeGroceryItem(itemName)
     override suspend fun estimateNutrition(foodDescription: String) = onDevice.estimateNutrition(foodDescription)
+
+    override suspend fun getQuickWorkoutExercises(
+        focus: WorkoutFocus,
+        timeBudgetMinutes: Int,
+        availableExercises: List<Exercise>
+    ): Result<List<TemplateExerciseDraft>> =
+        onDevice.getQuickWorkoutExercises(focus, timeBudgetMinutes, availableExercises)
 
     override fun isAvailable(): Boolean = gemini.isAvailable()
 }

@@ -5,8 +5,11 @@ import com.google.ai.client.generativeai.type.ResponseStoppedException
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.reps.app.core.domain.model.DayLog
+import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.MacroTargets
 import com.reps.app.core.domain.model.MealSlot
+import com.reps.app.core.domain.model.TemplateExerciseDraft
+import com.reps.app.core.domain.model.WorkoutFocus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.double
@@ -227,6 +230,46 @@ class GeminiRepository(private val apiKey: String) : AIRepository {
             val response = structuredModel.generateContent(prompt).text?.trim()?.uppercase() ?: "PANTRY"
             val valid = setOf("PROTEIN", "DAIRY", "PRODUCE", "FROZEN", "PANTRY")
             if (response in valid) response else "PANTRY"
+        }
+    }
+
+    override suspend fun getQuickWorkoutExercises(
+        focus: WorkoutFocus,
+        timeBudgetMinutes: Int,
+        availableExercises: List<Exercise>
+    ): Result<List<TemplateExerciseDraft>> {
+        val count = when {
+            timeBudgetMinutes <= 20 -> 3
+            timeBudgetMinutes <= 35 -> 5
+            else -> 7
+        }
+        val sets = if (timeBudgetMinutes >= 45) 4 else 3
+        val exerciseList = availableExercises.take(40)
+            .joinToString("\n") { "${it.id}|${it.name}|${it.muscleGroups.joinToString(",")}" }
+        val prompt = """
+            Pick $count exercises for a ${focus.displayName} workout (${timeBudgetMinutes}min).
+            Each exercise: $sets sets, 8-12 reps.
+            Available exercises (id|name|muscles):
+            $exerciseList
+            Respond ONLY with valid JSON array, no preamble:
+            [{"exerciseId":1,"targetSets":$sets,"targetReps":"8-12"}]
+        """.trimIndent()
+        return runCatching {
+            val response = structuredModel.generateContent(prompt)
+            val json = response.text?.trim()
+                ?.removePrefix("```json")?.removePrefix("```")?.removeSuffix("```")?.trim()
+                ?: return Result.success(emptyList())
+            val j = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            val arr = j.parseToJsonElement(json).let {
+                it as? kotlinx.serialization.json.JsonArray ?: return Result.success(emptyList())
+            }
+            arr.mapNotNull { el ->
+                val obj = el.jsonObject
+                val id = obj["exerciseId"]?.jsonPrimitive?.content?.toLongOrNull() ?: return@mapNotNull null
+                val s = obj["targetSets"]?.jsonPrimitive?.content?.toIntOrNull() ?: sets
+                val r = obj["targetReps"]?.jsonPrimitive?.content ?: "8-12"
+                TemplateExerciseDraft(exerciseId = id, targetSets = s, targetReps = r)
+            }
         }
     }
 
