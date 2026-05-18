@@ -163,7 +163,7 @@ fun RepsNavGraph(
 
         composable(Screen.More.route) {
             MoreScreen(
-                onNavigateToAICoach = { navController.navigate(Screen.AICoach.route) },
+                onNavigateToProgress = { navController.navigate(Screen.Progress.route) },
                 onNavigateToMealPlan = { navController.navigate(Screen.MealPlan.route) },
                 onNavigateToGrocery = { navController.navigate(Screen.GroceryList.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
@@ -352,7 +352,7 @@ fun RepsNavGraph(
             SettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(Screen.AICoach.route) {
-            AICoachScreen(onNavigateBack = { navController.popBackStack() })
+            AICoachScreen()
         }
     }
 }

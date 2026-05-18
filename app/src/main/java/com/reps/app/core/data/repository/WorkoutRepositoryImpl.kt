@@ -166,6 +166,27 @@ class WorkoutRepositoryImpl @Inject constructor(
         return logId
     }
 
+    override suspend fun startQuickWorkout(name: String, exercises: List<TemplateExerciseDraft>): Long =
+        withContext(ioDispatcher) {
+            val todayMs = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val logId = database.workoutLogDao().insert(
+                WorkoutLogEntity(date = todayMs, templateId = null, name = name)
+            )
+            exercises.forEachIndexed { index, draft ->
+                repeat(draft.targetSets) { setIndex ->
+                    database.workoutSetDao().insert(
+                        WorkoutSetEntity(
+                            workoutLogId = logId,
+                            exerciseId = draft.exerciseId,
+                            setNumber = setIndex + 1,
+                            weightKg = draft.targetWeightKg
+                        )
+                    )
+                }
+            }
+            logId
+        }
+
     override suspend fun logSet(
         workoutLogId: Long,
         exerciseId: Long,

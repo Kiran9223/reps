@@ -2,8 +2,10 @@ package com.reps.app.feature.workout
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reps.app.ai.AIRepository
 import com.reps.app.core.data.datastore.AppSettingsDataStore
 import com.reps.app.core.domain.model.ExerciseFilter
+import com.reps.app.core.domain.model.WorkoutFocus
 import com.reps.app.core.domain.model.WorkoutSummary
 import com.reps.app.core.domain.model.WorkoutTemplate
 import com.reps.app.core.domain.repository.WorkoutRepository
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,29 +23,32 @@ data class WorkoutUiState(
     val templates: List<WorkoutTemplate> = emptyList(),
     val recentWorkouts: List<WorkoutSummary> = emptyList(),
     val isShoulderSafeOnly: Boolean = false,
-    val isStarting: Boolean = false
+    val isStarting: Boolean = false,
+    val isGeneratingQuickWorkout: Boolean = false
 )
 
 @HiltViewModel
 class WorkoutViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
+    private val aiRepository: AIRepository,
     private val appSettingsDataStore: AppSettingsDataStore
 ) : ViewModel() {
 
     private val _isStarting = MutableStateFlow(false)
+    private val _isGeneratingQuickWorkout = MutableStateFlow(false)
 
     val uiState: StateFlow<WorkoutUiState> = combine(
-        workoutRepository.getTemplates(),
-        workoutRepository.getWorkoutHistory(limit = 20),
-        appSettingsDataStore.isShoulderSafeOnly,
-        _isStarting
-    ) { templates, recent, shoulderSafe, starting ->
-        WorkoutUiState(
-            templates = templates,
-            recentWorkouts = recent,
-            isShoulderSafeOnly = shoulderSafe,
-            isStarting = starting
-        )
+        combine(
+            workoutRepository.getTemplates(),
+            workoutRepository.getWorkoutHistory(limit = 20),
+            appSettingsDataStore.isShoulderSafeOnly,
+            _isStarting
+        ) { templates, recent, shoulderSafe, starting ->
+            WorkoutUiState(templates = templates, recentWorkouts = recent, isShoulderSafeOnly = shoulderSafe, isStarting = starting)
+        },
+        _isGeneratingQuickWorkout
+    ) { state, generating ->
+        state.copy(isGeneratingQuickWorkout = generating)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorkoutUiState())
 
     fun toggleShoulderSafe() {
@@ -57,6 +63,32 @@ class WorkoutViewModel @Inject constructor(
             workoutRepository.startWorkout(templateId)
         } finally {
             _isStarting.value = false
+        }
+    }
+
+    suspend fun generateAndStartQuickWorkout(focus: WorkoutFocus, timeBudgetMinutes: Int): Long {
+        _isGeneratingQuickWorkout.value = true
+        return try {
+            val shoulderSafe = uiState.value.isShoulderSafeOnly
+            val allExercises = workoutRepository.getExercises(
+                ExerciseFilter(shoulderSafeOnly = shoulderSafe)
+            ).first()
+            val focused = if (focus.muscleKeywords.isEmpty()) allExercises
+                          else allExercises.filter { ex ->
+                              focus.muscleKeywords.any { kw ->
+                                  ex.muscleGroups.any { mg -> mg.contains(kw, ignoreCase = true) }
+                              }
+                          }
+            val drafts = aiRepository.getQuickWorkoutExercises(focus, timeBudgetMinutes, focused)
+                .getOrDefault(emptyList())
+            val name = "${focus.displayName} · ${timeBudgetMinutes}min"
+            if (drafts.isEmpty()) {
+                workoutRepository.startWorkout(null)
+            } else {
+                workoutRepository.startQuickWorkout(name, drafts)
+            }
+        } finally {
+            _isGeneratingQuickWorkout.value = false
         }
     }
 

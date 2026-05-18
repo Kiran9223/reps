@@ -14,6 +14,7 @@ interface WorkoutRepository {
     fun getSession(workoutLogId: Long): Flow<WorkoutSession?>
     fun getWorkoutHistory(limit: Int): Flow<List<WorkoutSummary>>
     suspend fun startWorkout(templateId: Long?): Long
+    suspend fun startQuickWorkout(name: String, exercises: List<TemplateExerciseDraft>): Long
     suspend fun logSet(workoutLogId: Long, exerciseId: Long, setNumber: Int, reps: Int?, weightKg: Double?): Long
     suspend fun completeSet(setId: Long, reps: Int?, weightKg: Double?)
     suspend fun completeWorkout(workoutLogId: Long)

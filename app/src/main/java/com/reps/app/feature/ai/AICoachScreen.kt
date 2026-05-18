@@ -24,9 +24,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.CheckCircle
@@ -79,7 +79,6 @@ import com.reps.app.ui.theme.RepsTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AICoachScreen(
-    onNavigateBack: () -> Unit = {},
     viewModel: AICoachViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -117,11 +116,6 @@ fun AICoachScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.screen_ai_coach)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.nav_back))
-                    }
-                },
                 actions = {
                     IconButton(onClick = { showClearConfirm = true }) {
                         Icon(Icons.Filled.DeleteSweep, contentDescription = stringResource(R.string.ai_coach_clear))
@@ -283,12 +277,14 @@ private fun AiBubble(text: String) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
         ) {
-            Text(
-                text = text.toMarkdownAnnotatedString(),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            SelectionContainer {
+                Text(
+                    text = text.toMarkdownAnnotatedString(),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }

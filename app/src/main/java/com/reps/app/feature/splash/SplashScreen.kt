@@ -59,7 +59,6 @@ fun SplashScreen(onComplete: () -> Unit = {}) {
     val letterYAnims = remember { List(4) { Animatable(6000f) } }
 
     val lightningAlpha   = remember { Animatable(0f) }
-    val crackProgress    = remember { Animatable(0f) }
     val strikeFlashAlpha = remember { Animatable(0f) }
 
     BoxWithConstraints(
@@ -202,9 +201,6 @@ fun SplashScreen(onComplete: () -> Unit = {}) {
                 delay(95)
             }
 
-            // ── Phase 7: Cracks spread across REPS ───────────────────────
-            crackProgress.animateTo(1f, tween(420))
-
             delay(1000)
             onComplete()
         }
@@ -223,7 +219,6 @@ fun SplashScreen(onComplete: () -> Unit = {}) {
         val lx2 = letterXAnims[2].value; val ly2 = letterYAnims[2].value
         val lx3 = letterXAnims[3].value; val ly3 = letterYAnims[3].value
         val cLightning     = lightningAlpha.value
-        val cCrack         = crackProgress.value
 
         // ── Shakeable content layer ───────────────────────────────────────
         Box(
@@ -266,10 +261,9 @@ fun SplashScreen(onComplete: () -> Unit = {}) {
                     }
                 }
 
-                // Lightning bolt + cracks drawn over the text
+                // Lightning bolt drawn over the text
                 Canvas(modifier = Modifier.size(320.dp, 190.dp)) {
                     if (cLightning > 0f) drawLightningBolt(cLightning)
-                    if (cCrack > 0f)     drawCracks(cCrack)
                 }
             }
         }
@@ -394,46 +388,6 @@ private fun DrawScope.drawLightningBolt(alpha: Float) {
     // Bright yellow inner channel
     drawPath(path, Color(0xFFE8FF47).copy(alpha = alpha * 0.9f),
         style = Stroke(1.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-}
-
-// ── Crack drawing ─────────────────────────────────────────────────────────────
-
-private fun DrawScope.drawCracks(progress: Float) {
-    val cx    = size.width / 2f
-    val cy    = size.height / 2f
-    val scale = size.height / 190f
-
-    // Each entry: start offset → end offset (relative to canvas centre, unitless)
-    val segments = listOf(
-        Offset(0f, 0f)      to Offset(48f, -24f),
-        Offset(48f, -24f)   to Offset(82f, -14f),
-        Offset(82f, -14f)   to Offset(108f, -32f),
-        Offset(48f, -24f)   to Offset(62f, 10f),        // branch
-        Offset(0f, 0f)      to Offset(-44f, 20f),
-        Offset(-44f, 20f)   to Offset(-72f, 36f),
-        Offset(-44f, 20f)   to Offset(-58f, -6f),       // branch
-        Offset(0f, 0f)      to Offset(12f, -40f),
-        Offset(12f, -40f)   to Offset(26f, -54f),
-        Offset(26f, -54f)   to Offset(18f, -68f)        // tip
-    )
-
-    val total   = segments.size
-    val full    = (progress * total).toInt().coerceAtMost(total)
-    val partial = (progress * total) - full
-    val sw      = 1.8.dp.toPx()
-    val color   = Color.White.copy(alpha = 0.88f)
-
-    fun toScreen(p: Offset) = Offset(cx + p.x * scale, cy + p.y * scale)
-
-    for (i in 0 until full) {
-        val (a, b) = segments[i]
-        drawLine(color, toScreen(a), toScreen(b), sw, StrokeCap.Round)
-    }
-    if (full < total && partial > 0f) {
-        val (a, b) = segments[full]
-        val mid = Offset(a.x + (b.x - a.x) * partial, a.y + (b.y - a.y) * partial)
-        drawLine(color, toScreen(a), toScreen(mid), sw, StrokeCap.Round)
-    }
 }
 
 // ── Preview ───────────────────────────────────────────────────────────────────

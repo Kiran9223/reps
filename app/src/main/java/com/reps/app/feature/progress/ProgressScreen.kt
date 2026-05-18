@@ -56,6 +56,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -320,7 +322,7 @@ private fun WeightChartCard(
                             ) {
                                 Icon(
                                     Icons.Filled.Delete,
-                                    contentDescription = null,
+                                    contentDescription = stringResource(R.string.cd_delete_checkin),
                                     tint = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.padding(end = 16.dp)
                                 )
@@ -345,10 +347,12 @@ private fun WeightChartCard(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 checkIn.deltaKg?.let { delta ->
-                                    val color = if (delta < 0) COLOR_PROTEIN else MaterialTheme.colorScheme.error
-                                    val sign = if (delta < 0) "" else "+"
+                                    val isDown = delta < 0
+                                    val color = if (isDown) COLOR_PROTEIN else MaterialTheme.colorScheme.error
+                                    val arrow = stringResource(if (isDown) R.string.progress_trend_down else R.string.progress_trend_up)
+                                    val sign = if (isDown) "" else "+"
                                     Text(
-                                        "$sign${String.format("%.1f", delta)}kg",
+                                        "$arrow $sign${String.format("%.1f", delta)}kg",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = color
                                     )
@@ -529,10 +533,12 @@ private fun MeasurementsSection(
                     TextButton(onClick = onLogNew) {
                         Text(stringResource(R.string.measurements_log_new), style = MaterialTheme.typography.labelMedium)
                     }
-                    IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
+                    IconButton(onClick = onToggle) {
                         Icon(
                             if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                            contentDescription = null,
+                            contentDescription = stringResource(
+                                if (expanded) R.string.cd_collapse_section else R.string.cd_expand_section
+                            ),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -567,7 +573,11 @@ private fun MeasurementHistoryRow(measurement: BodyMeasurement, dateLabel: Strin
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(dateLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (measurement.hasAnyDecrease) {
-                Text("💪", style = MaterialTheme.typography.labelSmall)
+                Text(
+                    stringResource(R.string.measurements_improving_label),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = COLOR_PROTEIN
+                )
             }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

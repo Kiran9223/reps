@@ -75,6 +75,7 @@
     <string name="nav_meals">Meals</string>
     <string name="nav_workout">Workout</string>
     <string name="nav_progress">Progress</string>
+    <string name="nav_ai_coach">AI Coach</string>
     <string name="nav_more">More</string>
 
     <!-- Screen titles -->
@@ -536,4 +537,26 @@
     <string name="import_plan_done_btn">Done</string>
     <string name="import_plan_remove">Remove item</string>
     <string name="import_plan_remove_day">Remove day</string>
+
+    <!-- Quick Workout builder -->
+    <string name="quick_workout_time_label">Time</string>
+    <string name="quick_workout_focus_label">Focus</string>
+    <string name="quick_workout_min_format">%1$d min</string>
+    <string name="quick_workout_build">Build Workout</string>
+    <string name="quick_workout_building">Building your workout…</string>
+    <string name="quick_workout_start_empty">Start empty session</string>
+
+    <!-- Accessibility content descriptions -->
+    <string name="cd_previous_day">Previous day</string>
+    <string name="cd_next_day">Next day</string>
+    <string name="cd_delete_entry">Delete entry</string>
+    <string name="cd_delete_checkin">Delete check-in</string>
+    <string name="cd_expand_section">Expand section</string>
+    <string name="cd_collapse_section">Collapse section</string>
+    <string name="cd_calorie_progress">Calories: %1$d of %2$d kcal</string>
+    <string name="cd_water_progress">Water: %1$d of %2$d ml</string>
+    <string name="workout_starting_label">Starting…</string>
+    <string name="progress_trend_down">▼</string>
+    <string name="progress_trend_up">▲</string>
+    <string name="measurements_improving_label">Improving</string>
 </resources>

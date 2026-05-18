@@ -78,6 +78,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -238,7 +240,8 @@ private fun DateNavigationHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onPreviousDay) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null,
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = stringResource(R.string.cd_previous_day),
                 tint = MaterialTheme.colorScheme.onBackground)
         }
         val label = when (selectedDate) {
@@ -253,7 +256,7 @@ private fun DateNavigationHeader(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.cd_next_day),
                 tint = if (selectedDate < today) MaterialTheme.colorScheme.onBackground
                        else MaterialTheme.colorScheme.outline
             )
@@ -299,7 +302,7 @@ private fun TodayTab(
                 Spacer(Modifier.height(4.dp))
             }
         }
-        items(MealSlot.entries.sortedBy { it.sortOrder }) { slot ->
+        items(MealSlot.entries.sortedBy { it.sortOrder }, key = { it.name }) { slot ->
             SlotCard(
                 slot = slot,
                 slotLog = state.dayLog.slotLog(slot),
@@ -427,6 +430,8 @@ private fun CalorieWaterSection(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val calorieDesc = stringResource(R.string.cd_calorie_progress, macros.calories.toInt(), macros.targets.calories)
+    val waterDesc = stringResource(R.string.cd_water_progress, waterMl, waterTarget)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -445,7 +450,8 @@ private fun CalorieWaterSection(
                 }
                 LinearProgressIndicator(
                     progress = { macros.calorieProgress },
-                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(6.dp)
+                        .semantics { contentDescription = calorieDesc },
                     color = primaryColor,
                     trackColor = surfaceVariant
                 )
@@ -466,7 +472,8 @@ private fun CalorieWaterSection(
                 val waterProgress = if (waterTarget > 0) (waterMl.toFloat() / waterTarget).coerceAtMost(1f) else 0f
                 LinearProgressIndicator(
                     progress = { waterProgress },
-                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(6.dp)
+                        .semantics { contentDescription = waterDesc },
                     color = COLOR_CARBS,
                     trackColor = surfaceVariant
                 )
@@ -574,12 +581,12 @@ private fun InsightCard(
                 if (isFetching) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                 } else {
-                    IconButton(onClick = onRefresh, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = onRefresh) {
                         Icon(
                             Icons.Filled.Refresh,
                             contentDescription = stringResource(R.string.dashboard_refresh_insight),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -647,7 +654,7 @@ private fun ProgressTab(state: DashboardUiState) {
             )
         }
         item { Spacer(Modifier.height(16.dp)) }
-        items(state.weekHistory.sortedByDescending { it.date }) { dayLog ->
+        items(state.weekHistory.sortedByDescending { it.date }, key = { it.date }) { dayLog ->
             WeekDayRow(dayLog = dayLog, modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp))
         }
         item { Spacer(Modifier.height(24.dp)) }
@@ -680,7 +687,9 @@ private fun WeekDayRow(dayLog: DayLog, modifier: Modifier = Modifier) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -863,7 +872,7 @@ private fun SwipeToDeleteEntry(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.cd_delete_entry), tint = MaterialTheme.colorScheme.onErrorContainer)
             }
         }
     ) {

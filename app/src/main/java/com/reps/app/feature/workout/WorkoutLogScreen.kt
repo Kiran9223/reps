@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +28,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalLayoutApi
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.core.domain.model.WorkoutFocus
 import com.reps.app.core.domain.model.WorkoutSummary
 import com.reps.app.core.domain.model.WorkoutTemplate
 import com.reps.app.ui.theme.RepsTheme
@@ -121,8 +127,15 @@ fun WorkoutLogScreen(
 
             item {
                 QuickStartCard(
-                    isStarting = state.isStarting,
-                    onStart = {
+                    isGenerating = state.isGeneratingQuickWorkout,
+                    isStartingEmpty = state.isStarting,
+                    onBuild = { focus, minutes ->
+                        scope.launch {
+                            val id = viewModel.generateAndStartQuickWorkout(focus, minutes)
+                            onNavigateToActiveWorkout(id)
+                        }
+                    },
+                    onStartEmpty = {
                         scope.launch {
                             val id = viewModel.startWorkout(null)
                             onNavigateToActiveWorkout(id)
@@ -250,41 +263,108 @@ private fun ShoulderSafeToggle(enabled: Boolean, onToggle: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QuickStartCard(isStarting: Boolean, onStart: () -> Unit) {
+private fun QuickStartCard(
+    isGenerating: Boolean,
+    isStartingEmpty: Boolean,
+    onBuild: (WorkoutFocus, Int) -> Unit,
+    onStartEmpty: () -> Unit
+) {
+    var selectedFocus by remember { mutableStateOf(WorkoutFocus.PUSH) }
+    var selectedMinutes by remember { mutableIntStateOf(30) }
+    val timeBudgets = listOf(15, 30, 45)
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.workout_quick_start_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = stringResource(R.string.workout_quick_start_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+            Text(
+                text = stringResource(R.string.workout_quick_start_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            // Time picker
+            Text(
+                text = stringResource(R.string.quick_workout_time_label),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                timeBudgets.forEach { mins ->
+                    FilterChip(
+                        selected = selectedMinutes == mins,
+                        onClick = { selectedMinutes = mins },
+                        label = { Text(stringResource(R.string.quick_workout_min_format, mins), style = MaterialTheme.typography.labelSmall) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
             }
-            if (isStarting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary
-                )
+
+            // Focus picker
+            Text(
+                text = stringResource(R.string.quick_workout_focus_label),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(WorkoutFocus.PUSH, WorkoutFocus.PULL, WorkoutFocus.LEGS, WorkoutFocus.FULL_BODY).forEach { focus ->
+                    FilterChip(
+                        selected = selectedFocus == focus,
+                        onClick = { selectedFocus = focus },
+                        label = { Text(focus.displayName, style = MaterialTheme.typography.labelSmall) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+            }
+
+            // Actions
+            if (isGenerating) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.quick_workout_building), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
             } else {
-                Button(onClick = onStart) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.workout_start))
+                Button(
+                    onClick = { onBuild(selectedFocus, selectedMinutes) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.quick_workout_build))
+                }
+                TextButton(
+                    onClick = onStartEmpty,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isStartingEmpty
+                ) {
+                    if (isStartingEmpty) {
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Text(
+                        stringResource(R.string.quick_workout_start_empty),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
             }
         }
@@ -322,7 +402,7 @@ private fun TemplateCard(
                 )
             }
             if (onEdit != null) {
-                IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Filled.Edit,
                         contentDescription = stringResource(R.string.workout_template_edit_action),
@@ -332,7 +412,7 @@ private fun TemplateCard(
                 }
             }
             if (onDelete != null) {
-                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = stringResource(R.string.workout_template_delete_action),

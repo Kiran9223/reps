@@ -34,7 +34,10 @@
       "Bash(Move-Item \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\\\\ImportPlanViewModel.kt\" \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\importplan\\\\ImportPlanViewModel.kt\")",
       "Bash(Move-Item \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\\\\ImportPlanScreen.kt\" \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\importplan\\\\ImportPlanScreen.kt\")",
       "Bash(Remove-Item \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\feature\\\\import\" -Recurse)",
-      "PowerShell(New-Item *)"
+      "PowerShell(New-Item *)",
+      "Bash(Find-Item -Path \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\ui\\\\theme\" -Filter \"*.kt\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\" -Recurse -Directory)"
     ]
   }
 }

@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.HorizontalDivider
@@ -32,7 +32,7 @@ import com.reps.app.ui.theme.RepsTheme
 
 @Composable
 fun MoreScreen(
-    onNavigateToAICoach: () -> Unit,
+    onNavigateToProgress: () -> Unit,
     onNavigateToMealPlan: () -> Unit,
     onNavigateToGrocery: () -> Unit,
     onNavigateToSettings: () -> Unit
@@ -51,9 +51,9 @@ fun MoreScreen(
         )
         Spacer(Modifier.height(16.dp))
         MoreItem(
-            icon = Icons.Filled.Psychology,
-            label = stringResource(R.string.more_ai_coach),
-            onClick = onNavigateToAICoach
+            icon = Icons.Filled.BarChart,
+            label = stringResource(R.string.nav_progress),
+            onClick = onNavigateToProgress
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MoreItem(
@@ -114,7 +114,7 @@ private fun MoreItem(
 private fun MoreScreenPreview() {
     RepsTheme {
         MoreScreen(
-            onNavigateToAICoach = {},
+            onNavigateToProgress = {},
             onNavigateToMealPlan = {},
             onNavigateToGrocery = {},
             onNavigateToSettings = {}

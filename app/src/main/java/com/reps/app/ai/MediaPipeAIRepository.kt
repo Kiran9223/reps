@@ -2,8 +2,11 @@ package com.reps.app.ai
 
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import com.reps.app.core.domain.model.DayLog
+import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.MacroTargets
 import com.reps.app.core.domain.model.MealSlot
+import com.reps.app.core.domain.model.TemplateExerciseDraft
+import com.reps.app.core.domain.model.WorkoutFocus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -95,6 +98,33 @@ Respond ONLY with valid JSON, no preamble:
             if (done) close()
         }
         awaitClose()
+    }
+
+    override suspend fun getQuickWorkoutExercises(
+        focus: WorkoutFocus,
+        timeBudgetMinutes: Int,
+        availableExercises: List<Exercise>
+    ): Result<List<TemplateExerciseDraft>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val count = when {
+                timeBudgetMinutes <= 20 -> 3
+                timeBudgetMinutes <= 35 -> 5
+                else -> 7
+            }
+            val sets = if (timeBudgetMinutes >= 45) 4 else 3
+            val exerciseList = availableExercises.take(30).joinToString("\n") { ex ->
+                "${ex.id} | ${ex.name} | ${ex.muscleGroups.joinToString(", ")}"
+            }
+            val prompt = """
+You are a gym coach. Pick $count exercises for a $timeBudgetMinutes-minute ${focus.displayName} workout from the list below.
+Each exercise gets $sets sets.
+Available exercises (id | name | muscles):
+$exerciseList
+Respond ONLY with a valid JSON array, no preamble:
+[{"exerciseId":1,"targetSets":$sets,"targetReps":"8-12","targetWeightKg":null}]
+            """.trimIndent()
+            parseQuickWorkoutDrafts(llmInference.generateResponse(prompt))
+        }
     }
 
     override suspend fun getShoulderSafeAlternatives(
@@ -281,6 +311,24 @@ Respond ONLY with valid JSON, no preamble:
             fiberG = obj["fiber"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
             servingGrams = obj["serving_g"]?.jsonPrimitive?.doubleOrNull ?: 100.0
         )
+    }
+
+    private fun parseQuickWorkoutDrafts(response: String): List<TemplateExerciseDraft> {
+        val jsonStr = extractJson(response, '[', ']')
+        val array = json.parseToJsonElement(jsonStr) as JsonArray
+        return array.mapNotNull { element ->
+            runCatching {
+                val obj = element.jsonObject
+                val id = obj["exerciseId"]?.jsonPrimitive?.content?.toLongOrNull()
+                    ?: return@runCatching null
+                TemplateExerciseDraft(
+                    exerciseId = id,
+                    targetSets = obj["targetSets"]?.jsonPrimitive?.content?.toIntOrNull() ?: 3,
+                    targetReps = obj["targetReps"]?.jsonPrimitive?.content ?: "8-12",
+                    targetWeightKg = obj["targetWeightKg"]?.jsonPrimitive?.doubleOrNull
+                )
+            }.getOrNull()
+        }
     }
 
     private fun extractJson(text: String, open: Char, close: Char): String {

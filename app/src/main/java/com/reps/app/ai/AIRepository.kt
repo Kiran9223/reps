@@ -1,8 +1,11 @@
 package com.reps.app.ai
 
 import com.reps.app.core.domain.model.DayLog
+import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.MacroTargets
 import com.reps.app.core.domain.model.MealSlot
+import com.reps.app.core.domain.model.TemplateExerciseDraft
+import com.reps.app.core.domain.model.WorkoutFocus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 
@@ -43,6 +46,11 @@ interface AIRepository {
         availableFoods: List<String>
     ): Result<AiMealSuggestion>
     fun getChatResponseStream(history: List<ChatMessage>, userMessage: String, userContext: String): Flow<String>
+    suspend fun getQuickWorkoutExercises(
+        focus: WorkoutFocus,
+        timeBudgetMinutes: Int,
+        availableExercises: List<Exercise>
+    ): Result<List<TemplateExerciseDraft>>
     suspend fun getShoulderSafeAlternatives(exerciseName: String, muscleGroup: String): Result<List<ExerciseAlternative>>
     suspend fun parseWorkoutPlanText(text: String): Result<ParsedWorkoutPlan>
     suspend fun parseMealPlanText(text: String): Result<ParsedMealPlan>

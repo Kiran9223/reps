@@ -1,8 +1,11 @@
 package com.reps.app.ai
 
 import com.reps.app.core.domain.model.DayLog
+import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.MacroTargets
 import com.reps.app.core.domain.model.MealSlot
+import com.reps.app.core.domain.model.TemplateExerciseDraft
+import com.reps.app.core.domain.model.WorkoutFocus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -54,6 +57,34 @@ class RuleBasedAIRepository : AIRepository {
         emit(
             "AI coach is not available on this device. " +
             "Make sure the model file is at /data/local/tmp/llm/model.task."
+        )
+    }
+
+    override suspend fun getQuickWorkoutExercises(
+        focus: WorkoutFocus,
+        timeBudgetMinutes: Int,
+        availableExercises: List<Exercise>
+    ): Result<List<TemplateExerciseDraft>> {
+        val count = when {
+            timeBudgetMinutes <= 20 -> 3
+            timeBudgetMinutes <= 35 -> 5
+            else -> 7
+        }
+        val sets = if (timeBudgetMinutes >= 45) 4 else 3
+        val filtered = if (focus.muscleKeywords.isEmpty()) {
+            availableExercises
+        } else {
+            availableExercises.filter { ex ->
+                focus.muscleKeywords.any { kw ->
+                    ex.muscleGroups.any { mg -> mg.contains(kw, ignoreCase = true) }
+                }
+            }
+        }
+        val selected = filtered.shuffled().take(count)
+        return Result.success(
+            selected.map { ex ->
+                TemplateExerciseDraft(exerciseId = ex.id, targetSets = sets, targetReps = "8-12")
+            }
         )
     }
 
