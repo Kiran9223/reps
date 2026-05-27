@@ -13,6 +13,7 @@ import com.reps.app.core.domain.model.WorkoutFocus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.double
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -217,6 +218,28 @@ class GeminiRepository(private val apiKey: String) : AIRepository {
                     servingGrams = obj["serving_g"]?.jsonPrimitive?.double ?: 100.0
                 )
             }
+        }
+    }
+
+    override suspend fun estimateExerciseDetails(exerciseName: String): Result<EstimatedExercise> {
+        return runCatching {
+            val prompt = """
+                Provide exercise details for: "$exerciseName"
+                Respond ONLY with valid JSON, no preamble:
+                {"muscleGroups":["Chest","Triceps"],"equipment":["Barbell","Bench"],"isShoulderSafe":true,"restrictedMovements":[],"description":"A compound push exercise."}
+            """.trimIndent()
+            val json = structuredModel.generateContent(prompt).text?.trim()
+                ?.removePrefix("```json")?.removePrefix("```")?.removeSuffix("```")?.trim()
+                ?: throw Exception("Empty response")
+            val j = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            val obj = j.parseToJsonElement(json).jsonObject
+            EstimatedExercise(
+                muscleGroups = obj["muscleGroups"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
+                equipment = obj["equipment"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
+                isShoulderSafe = obj["isShoulderSafe"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true,
+                restrictedMovements = obj["restrictedMovements"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
+                description = obj["description"]?.jsonPrimitive?.content ?: ""
+            )
         }
     }
 

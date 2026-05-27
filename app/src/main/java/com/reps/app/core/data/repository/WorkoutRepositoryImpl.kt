@@ -2,6 +2,8 @@ package com.reps.app.core.data.repository
 
 import com.reps.app.core.data.RepsDatabase
 import com.reps.app.core.data.datastore.AppSettingsDataStore
+import com.reps.app.ai.EstimatedExercise
+import com.reps.app.core.data.entity.ExerciseEntity
 import com.reps.app.core.data.entity.WorkoutLogEntity
 import com.reps.app.core.data.entity.WorkoutSetEntity
 import com.reps.app.core.data.mapper.toDomain
@@ -250,6 +252,22 @@ class WorkoutRepositoryImpl @Inject constructor(
 
     override suspend fun getPersonalRecord(exerciseId: Long): Double? =
         database.workoutSetDao().getMaxWeight(exerciseId)
+
+    override suspend fun createCustomExercise(name: String, details: EstimatedExercise): Long =
+        withContext(ioDispatcher) {
+            database.exerciseDao().insert(
+                ExerciseEntity(
+                    name = name,
+                    description = details.description,
+                    muscleGroups = details.muscleGroups,
+                    equipment = details.equipment,
+                    isShoulderSafe = details.isShoulderSafe,
+                    restrictedMovements = details.restrictedMovements,
+                    source = "AI",
+                    isCustom = true
+                )
+            )
+        }
 
     override suspend fun searchAndImportFromWger(query: String): Result<Int> =
         withContext(ioDispatcher) {

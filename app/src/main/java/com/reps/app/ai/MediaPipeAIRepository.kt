@@ -198,6 +198,27 @@ Respond ONLY with valid JSON, no preamble:
             }
         }
 
+    override suspend fun estimateExerciseDetails(exerciseName: String): Result<EstimatedExercise> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val prompt = """
+You are a fitness expert. Provide details for this exercise: "$exerciseName"
+Respond ONLY with valid JSON, no preamble:
+{"muscleGroups":["Chest","Triceps"],"equipment":["Barbell","Bench"],"isShoulderSafe":true,"restrictedMovements":[],"description":"A compound push exercise."}
+                """.trimIndent()
+                val response = llmInference.generateResponse(prompt)
+                val jsonStr = extractJson(response, '{', '}')
+                val obj = json.parseToJsonElement(jsonStr).jsonObject
+                EstimatedExercise(
+                    muscleGroups = obj["muscleGroups"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
+                    equipment = obj["equipment"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
+                    isShoulderSafe = obj["isShoulderSafe"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true,
+                    restrictedMovements = obj["restrictedMovements"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
+                    description = obj["description"]?.jsonPrimitive?.content ?: ""
+                )
+            }
+        }
+
     override fun isAvailable(): Boolean = true
 
     private fun parseTokenArray(response: String): List<ParsedMealToken> {

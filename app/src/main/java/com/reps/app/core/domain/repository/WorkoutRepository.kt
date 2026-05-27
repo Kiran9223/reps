@@ -1,5 +1,6 @@
 package com.reps.app.core.domain.repository
 
+import com.reps.app.ai.EstimatedExercise
 import com.reps.app.core.domain.model.Exercise
 import com.reps.app.core.domain.model.ExerciseFilter
 import com.reps.app.core.domain.model.TemplateExerciseDraft
@@ -24,4 +25,5 @@ interface WorkoutRepository {
     suspend fun deleteTemplate(templateId: Long)
     suspend fun getPersonalRecord(exerciseId: Long): Double?
     suspend fun searchAndImportFromWger(query: String): Result<Int>
+    suspend fun createCustomExercise(name: String, details: EstimatedExercise): Long
 }

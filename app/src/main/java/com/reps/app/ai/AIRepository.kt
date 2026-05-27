@@ -24,6 +24,14 @@ data class EstimatedNutrition(
     val servingGrams: Double
 )
 
+data class EstimatedExercise(
+    val muscleGroups: List<String>,
+    val equipment: List<String>,
+    val isShoulderSafe: Boolean,
+    val restrictedMovements: List<String>,
+    val description: String
+)
+
 data class ChatMessage(
     val content: String,
     val isFromUser: Boolean,
@@ -56,5 +64,6 @@ interface AIRepository {
     suspend fun parseMealPlanText(text: String): Result<ParsedMealPlan>
     suspend fun categorizeGroceryItem(itemName: String): Result<String>
     suspend fun estimateNutrition(foodDescription: String): Result<EstimatedNutrition>
+    suspend fun estimateExerciseDetails(exerciseName: String): Result<EstimatedExercise>
     fun isAvailable(): Boolean
 }

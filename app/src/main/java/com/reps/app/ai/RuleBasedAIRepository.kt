@@ -164,5 +164,32 @@ class RuleBasedAIRepository : AIRepository {
         return Result.success(category)
     }
 
+    override suspend fun estimateExerciseDetails(exerciseName: String): Result<EstimatedExercise> {
+        val n = exerciseName.lowercase()
+        val muscleGroups = when {
+            n.contains("squat") || n.contains("leg press") || n.contains("lunge") -> listOf("Quadriceps", "Glutes", "Hamstrings")
+            n.contains("deadlift") || n.contains("hip hinge") -> listOf("Hamstrings", "Glutes", "Lower Back")
+            n.contains("bench") || n.contains("chest") || n.contains("push up") || n.contains("pushup") || n.contains("fly") -> listOf("Chest", "Triceps", "Shoulders")
+            n.contains("row") || n.contains("pull up") || n.contains("pullup") || n.contains("lat") || n.contains("back") -> listOf("Back", "Biceps")
+            n.contains("overhead") || n.contains("shoulder press") || n.contains("ohp") -> listOf("Shoulders", "Triceps")
+            n.contains("curl") || n.contains("bicep") -> listOf("Biceps")
+            n.contains("tricep") || n.contains("extension") || n.contains("pushdown") -> listOf("Triceps")
+            n.contains("calf") -> listOf("Calves")
+            n.contains("plank") || n.contains("crunch") || n.contains("sit up") || n.contains("ab") -> listOf("Core", "Abs")
+            else -> listOf("Full Body")
+        }
+        val isShoulderSafe = !n.contains("overhead") && !n.contains("military press") &&
+            !n.contains("behind neck") && !n.contains("upright row")
+        return Result.success(
+            EstimatedExercise(
+                muscleGroups = muscleGroups,
+                equipment = listOf("Varies"),
+                isShoulderSafe = isShoulderSafe,
+                restrictedMovements = emptyList(),
+                description = exerciseName
+            )
+        )
+    }
+
     override fun isAvailable(): Boolean = false
 }

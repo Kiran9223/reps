@@ -238,29 +238,44 @@ class AICoachViewModel @Inject constructor(
         else "Updated: ${updates.joinToString(", ")}"
     }
 
+    private fun exerciseNamesMatch(dbName: String, aiName: String): Boolean {
+        if (dbName.contains(aiName, ignoreCase = true) || aiName.contains(dbName, ignoreCase = true)) return true
+        val dbNorm = dbName.lowercase().replace(Regex("[^a-z0-9]"), " ").replace(Regex("\\s+"), " ").trim()
+        val aiNorm = aiName.lowercase().replace(Regex("[^a-z0-9]"), " ").replace(Regex("\\s+"), " ").trim()
+        if (dbNorm.contains(aiNorm) || aiNorm.contains(dbNorm)) return true
+        val dbWords = dbNorm.split(" ").filter { it.length > 1 }.toSet()
+        val aiWords = aiNorm.split(" ").filter { it.length > 1 }.toSet()
+        if (dbWords.isEmpty() || aiWords.isEmpty()) return false
+        return dbWords.containsAll(aiWords) || aiWords.containsAll(dbWords)
+    }
+
     private suspend fun executeCreateWorkoutPlan(action: AIAction.CreateWorkoutPlan): String {
         val allExercises = workoutRepository.getExercises(ExerciseFilter()).first()
         val drafts = mutableListOf<TemplateExerciseDraft>()
+        val autoCreated = mutableListOf<String>()
         val notFound = mutableListOf<String>()
-        action.exercises.forEachIndexed { index, spec ->
-            val match = allExercises.firstOrNull {
-                it.name.contains(spec.name, ignoreCase = true) ||
-                    spec.name.contains(it.name, ignoreCase = true)
-            }
+        action.exercises.forEach { spec ->
+            val match = allExercises.firstOrNull { exerciseNamesMatch(it.name, spec.name) }
             if (match != null) {
-                drafts.add(TemplateExerciseDraft(
-                    exerciseId = match.id,
-                    targetSets = spec.sets,
-                    targetReps = spec.reps
-                ))
+                drafts.add(TemplateExerciseDraft(exerciseId = match.id, targetSets = spec.sets, targetReps = spec.reps))
             } else {
-                notFound.add(spec.name)
+                val estimated = aiRepository.estimateExerciseDetails(spec.name).getOrNull()
+                if (estimated != null) {
+                    val newId = workoutRepository.createCustomExercise(spec.name, estimated)
+                    drafts.add(TemplateExerciseDraft(exerciseId = newId, targetSets = spec.sets, targetReps = spec.reps))
+                    autoCreated.add(spec.name)
+                } else {
+                    notFound.add(spec.name)
+                }
             }
         }
-        if (drafts.isEmpty()) return "No matching exercises found. Add them manually in the Workout screen."
+        if (drafts.isEmpty()) return "No exercises could be added. Try again or add them manually."
         workoutRepository.createTemplate(action.title, action.description, drafts)
-        return if (notFound.isEmpty()) "Workout plan \"${action.title}\" created with ${drafts.size} exercises"
-        else "Created \"${action.title}\" with ${drafts.size} exercises. Not found: ${notFound.joinToString()}"
+        return buildString {
+            append("Workout plan \"${action.title}\" created with ${drafts.size} exercises.")
+            if (autoCreated.isNotEmpty()) append(" Added to your library: ${autoCreated.joinToString()}.")
+            if (notFound.isNotEmpty()) append(" Could not add: ${notFound.joinToString()}.")
+        }
     }
 
     private suspend fun executeCreateMealPlan(action: AIAction.CreateMealPlan): String {

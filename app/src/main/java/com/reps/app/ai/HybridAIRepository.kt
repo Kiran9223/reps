@@ -44,6 +44,7 @@ class HybridAIRepository(
     override suspend fun parseMealPlanText(text: String) = gemini.parseMealPlanText(text)
     override suspend fun categorizeGroceryItem(itemName: String) = onDevice.categorizeGroceryItem(itemName)
     override suspend fun estimateNutrition(foodDescription: String) = onDevice.estimateNutrition(foodDescription)
+    override suspend fun estimateExerciseDetails(exerciseName: String) = gemini.estimateExerciseDetails(exerciseName)
 
     override suspend fun getQuickWorkoutExercises(
         focus: WorkoutFocus,
