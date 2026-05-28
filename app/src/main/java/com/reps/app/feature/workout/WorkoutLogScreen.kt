@@ -37,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -80,9 +82,12 @@ fun WorkoutLogScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val quickWorkoutError = stringResource(R.string.ai_quick_workout_error)
     var templateToDelete by remember { mutableStateOf<WorkoutTemplate?>(null) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.screen_workout)) },
@@ -132,7 +137,11 @@ fun WorkoutLogScreen(
                     onBuild = { focus, minutes ->
                         scope.launch {
                             val id = viewModel.generateAndStartQuickWorkout(focus, minutes)
-                            onNavigateToActiveWorkout(id)
+                            if (id != null) {
+                                onNavigateToActiveWorkout(id)
+                            } else {
+                                snackbarHostState.showSnackbar(quickWorkoutError)
+                            }
                         }
                     },
                     onStartEmpty = {
@@ -142,6 +151,12 @@ fun WorkoutLogScreen(
                         }
                     }
                 )
+            }
+
+            if (state.templates.isEmpty() && state.recentWorkouts.isNotEmpty()) {
+                item {
+                    TemplatesEmptyCard(onCreateTemplate = onNavigateToCreateTemplate)
+                }
             }
 
             if (state.templates.isNotEmpty()) {
@@ -234,6 +249,34 @@ fun WorkoutLogScreen(
 }
 
 @Composable
+private fun TemplatesEmptyCard(onCreateTemplate: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.workout_templates_empty_history_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.workout_templates_empty_history_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onCreateTemplate, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.workout_templates_create_first))
+            }
+        }
+    }
+}
+
+@Composable
 private fun ShoulderSafeToggle(enabled: Boolean, onToggle: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -255,6 +298,11 @@ private fun ShoulderSafeToggle(enabled: Boolean, onToggle: () -> Unit) {
                     text = stringResource(R.string.workout_shoulder_safe_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = stringResource(R.string.workout_shoulder_safe_quick_start_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(Modifier.width(8.dp))

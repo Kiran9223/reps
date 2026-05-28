@@ -47,6 +47,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -74,16 +76,25 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
 import com.reps.app.ai.ChatMessage
+import com.reps.app.ui.components.PrivacyNoticeBanner
 import com.reps.app.ui.theme.RepsTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AICoachScreen(
+    onOpenPrivacySettings: () -> Unit = {},
     viewModel: AICoachViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
     var showClearConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.snackbarMessage) {
+        val message = state.snackbarMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.onSnackbarShown()
+    }
 
     val totalItems = state.messages.size +
         (if (state.streamedText.isNotEmpty()) 1 else 0) +
@@ -124,6 +135,7 @@ fun AICoachScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
@@ -140,20 +152,27 @@ fun AICoachScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (state.messages.isEmpty() && !state.isStreaming) {
-                    item {
-                        AiBubble(text = stringResource(R.string.ai_coach_welcome))
-                    }
-                    if (state.isAiAvailable) {
-                        item {
-                            StarterPromptsSection(onPromptSelected = viewModel::sendSuggestedPrompt)
-                        }
+                if (state.showCloudNotice) {
+                    item(key = "cloud_notice") {
+                        PrivacyNoticeBanner(text = stringResource(R.string.ai_coach_cloud_notice))
                     }
                 }
 
-                if (!state.isAiAvailable && state.messages.isEmpty()) {
-                    item {
-                        AiBubble(text = stringResource(R.string.ai_coach_unavailable))
+                if (state.messages.isEmpty() && !state.isStreaming) {
+                    if (state.isAiAvailable) {
+                        item {
+                            AiBubble(text = stringResource(R.string.ai_coach_welcome))
+                        }
+                        item {
+                            StarterPromptsSection(onPromptSelected = viewModel::sendSuggestedPrompt)
+                        }
+                    } else {
+                        item(key = "unavailable") {
+                            UnavailableCoachCard(
+                                onDeviceLlmActive = state.onDeviceLlmActive,
+                                onOpenPrivacySettings = onOpenPrivacySettings
+                            )
+                        }
                     }
                 }
 
@@ -191,7 +210,8 @@ fun AICoachScreen(
                 text = state.inputText,
                 onTextChange = viewModel::onInputChange,
                 onSend = viewModel::sendMessage,
-                isSending = state.isStreaming
+                isSending = state.isStreaming,
+                enabled = state.isAiAvailable
             )
         }
     }
@@ -341,11 +361,49 @@ private fun TypingIndicator() {
 }
 
 @Composable
+private fun UnavailableCoachCard(
+    onDeviceLlmActive: Boolean,
+    onOpenPrivacySettings: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                stringResource(R.string.ai_coach_unavailable_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                stringResource(R.string.ai_coach_unavailable),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (onDeviceLlmActive) {
+                Text(
+                    stringResource(R.string.ai_coach_unavailable_on_device_ok),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            TextButton(onClick = onOpenPrivacySettings) {
+                Text(stringResource(R.string.ai_coach_open_privacy))
+            }
+        }
+    }
+}
+
+@Composable
 private fun ChatInputBar(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    isSending: Boolean
+    isSending: Boolean,
+    enabled: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -359,26 +417,32 @@ private fun ChatInputBar(
             value = text,
             onValueChange = onTextChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text(stringResource(R.string.ai_coach_input_hint),
-                style = MaterialTheme.typography.bodySmall) },
+            enabled = enabled,
+            placeholder = {
+                Text(
+                    if (enabled) stringResource(R.string.ai_coach_input_hint)
+                    else stringResource(R.string.ai_coach_unavailable_title),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            },
             maxLines = 4,
             shape = RoundedCornerShape(24.dp)
         )
         IconButton(
             onClick = onSend,
-            enabled = text.isNotBlank() && !isSending,
+            enabled = enabled && text.isNotBlank() && !isSending,
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
                 .background(
-                    if (text.isNotBlank() && !isSending) MaterialTheme.colorScheme.primary
+                    if (enabled && text.isNotBlank() && !isSending) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.surfaceVariant
                 )
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.Send,
                 contentDescription = stringResource(R.string.ai_coach_send),
-                tint = if (text.isNotBlank() && !isSending) MaterialTheme.colorScheme.onPrimary
+                tint = if (enabled && text.isNotBlank() && !isSending) MaterialTheme.colorScheme.onPrimary
                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -415,8 +479,12 @@ private fun ActionCard(
                 )
                 Text(
                     text = when (action) {
-                        is AIAction.LogMeal -> "Log to ${action.slot.replace("_", " ").lowercase().replaceFirstChar { it.uppercaseChar() }}"
-                        is AIAction.UpdateGoal -> "Update Goal"
+                        is AIAction.LogMeal -> stringResource(
+                            R.string.ai_coach_action_log_meal,
+                            action.slot.replace("_", " ").lowercase()
+                                .replaceFirstChar { it.uppercaseChar() }
+                        )
+                        is AIAction.UpdateGoal -> stringResource(R.string.ai_coach_action_update_goal)
                         is AIAction.CreateWorkoutPlan -> action.title
                         is AIAction.CreateMealPlan -> action.title
                     },
@@ -492,7 +560,7 @@ private fun ActionCard(
             ) {
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f),
                     enabled = !isConfirming) {
-                    Text("Dismiss", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.ai_coach_action_dismiss), style = MaterialTheme.typography.labelMedium)
                 }
                 Button(onClick = onConfirm, modifier = Modifier.weight(1f),
                     enabled = !isConfirming) {
@@ -503,7 +571,7 @@ private fun ActionCard(
                         Icon(Icons.Default.CheckCircle, contentDescription = null,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Confirm", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.ai_coach_action_confirm), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }

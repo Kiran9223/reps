@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.ui.components.AiErrorInline
+import com.reps.app.ui.components.resolveAiErrorMessage
 import com.reps.app.ui.theme.RepsTheme
 
 private val CUISINE_TAG_LABELS = listOf(
@@ -230,12 +232,11 @@ fun CustomFoodCreationScreen(
                 }
             }
 
-            if (state.errorMessage != null) {
+            state.errorMessage?.let { errorKey ->
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    state.errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                AiErrorInline(
+                    message = resolveAiErrorMessage(errorKey),
+                    onRetry = viewModel::estimateNutrition
                 )
             }
 

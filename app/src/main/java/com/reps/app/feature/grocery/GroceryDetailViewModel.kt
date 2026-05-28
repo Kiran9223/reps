@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reps.app.ai.AIRepository
+import com.reps.app.ai.AiUserMessages
 import com.reps.app.core.data.mapper.groceryCategoryFor
 import com.reps.app.core.di.IoDispatcher
 import com.reps.app.core.domain.model.GroceryCategory
@@ -43,6 +44,11 @@ class GroceryDetailViewModel @Inject constructor(
     private val _isCategorizing = MutableStateFlow(false)
     val isCategorizing: StateFlow<Boolean> = _isCategorizing.asStateFlow()
 
+    private val _categorizeError = MutableStateFlow<String?>(null)
+    val categorizeError: StateFlow<String?> = _categorizeError.asStateFlow()
+
+    private var lastFailedItemName: String? = null
+
     val itemsByCategory: StateFlow<Map<GroceryCategory, List<SavedGroceryItem>>> =
         groceryRepository.getItems(listId)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
@@ -55,24 +61,54 @@ class GroceryDetailViewModel @Inject constructor(
 
     fun onInputChange(text: String) {
         _itemInput.value = text
+        _categorizeError.value = null
+    }
+
+    fun dismissCategorizeError() {
+        _categorizeError.value = null
+        lastFailedItemName = null
     }
 
     fun addItem() {
         val name = _itemInput.value.trim()
         if (name.isBlank()) return
         _itemInput.value = ""
+        _categorizeError.value = null
         viewModelScope.launch {
-            _isCategorizing.value = true
-            val categoryName = withContext(ioDispatcher) {
-                aiRepository.categorizeGroceryItem(name).getOrElse { "PANTRY" }
-            }
-            val category = runCatching { GroceryCategory.valueOf(categoryName) }
-                .getOrElse { GroceryCategory.PANTRY }
-            _isCategorizing.value = false
-            withContext(ioDispatcher) {
-                groceryRepository.addItem(listId, name, category)
-            }
+            categorizeAndAdd(name)
         }
+    }
+
+    fun retryCategorize() {
+        val name = lastFailedItemName ?: return
+        viewModelScope.launch {
+            categorizeAndAdd(name)
+        }
+    }
+
+    private suspend fun categorizeAndAdd(name: String) {
+        _isCategorizing.value = true
+        val result = withContext(ioDispatcher) {
+            aiRepository.categorizeGroceryItem(name)
+        }
+        result.fold(
+            onSuccess = { categoryName ->
+                lastFailedItemName = null
+                _categorizeError.value = null
+                val category = runCatching { GroceryCategory.valueOf(categoryName) }
+                    .getOrElse { GroceryCategory.PANTRY }
+                _isCategorizing.value = false
+                withContext(ioDispatcher) {
+                    groceryRepository.addItem(listId, name, category)
+                }
+            },
+            onFailure = {
+                lastFailedItemName = name
+                _categorizeError.value = AiUserMessages.GROCERY_CATEGORIZE_FAILED
+                _itemInput.value = name
+                _isCategorizing.value = false
+            }
+        )
     }
 
     fun toggleItem(itemId: Long) {

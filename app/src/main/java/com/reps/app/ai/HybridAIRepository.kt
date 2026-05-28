@@ -10,8 +10,11 @@ import kotlinx.coroutines.flow.Flow
 
 class HybridAIRepository(
     private val onDevice: AIRepository,
-    private val gemini: AIRepository
+    private val gemini: AIRepository,
+    private val cloudAssistGate: CloudAssistGate
 ) : AIRepository {
+
+    private suspend fun cloudActive(): Boolean = cloudAssistGate.isCloudActiveNow()
 
     override suspend fun parseNaturalLanguageMeal(input: String) =
         onDevice.parseNaturalLanguageMeal(input)
@@ -35,21 +38,38 @@ class HybridAIRepository(
         history: List<ChatMessage>,
         userMessage: String,
         userContext: String
-    ): Flow<String> = gemini.getChatResponseStream(history, userMessage, userContext)
+    ): Flow<String> {
+        if (!cloudAssistGate.isCloudActiveSync()) {
+            return kotlinx.coroutines.flow.flow {
+                throw IllegalStateException("Cloud assist is off")
+            }
+        }
+        return gemini.getChatResponseStream(history, userMessage, userContext)
+    }
 
     override suspend fun getShoulderSafeAlternatives(exerciseName: String, muscleGroup: String) =
         onDevice.getShoulderSafeAlternatives(exerciseName, muscleGroup)
 
-    override suspend fun parseWorkoutPlanText(text: String) = gemini.parseWorkoutPlanText(text)
-    override suspend fun parseMealPlanText(text: String) = gemini.parseMealPlanText(text)
+    override suspend fun parseWorkoutPlanText(text: String) =
+        if (cloudActive()) gemini.parseWorkoutPlanText(text)
+        else Result.failure(IllegalStateException("Cloud assist is off"))
+
+    override suspend fun parseMealPlanText(text: String) =
+        if (cloudActive()) gemini.parseMealPlanText(text)
+        else Result.failure(IllegalStateException("Cloud assist is off"))
     override suspend fun categorizeGroceryItem(itemName: String) = onDevice.categorizeGroceryItem(itemName)
     override suspend fun estimateNutrition(foodDescription: String) = onDevice.estimateNutrition(foodDescription)
     override suspend fun estimateExerciseDetails(exerciseName: String): Result<EstimatedExercise> {
-        val result = gemini.estimateExerciseDetails(exerciseName)
-        return if (result.isSuccess) result else onDevice.estimateExerciseDetails(exerciseName)
+        if (cloudActive()) {
+            val result = gemini.estimateExerciseDetails(exerciseName)
+            if (result.isSuccess) return result
+        }
+        return onDevice.estimateExerciseDetails(exerciseName)
     }
+
     override suspend fun estimateWorkoutTemplate(name: String, availableExercises: List<Exercise>) =
-        gemini.estimateWorkoutTemplate(name, availableExercises)
+        if (cloudActive()) gemini.estimateWorkoutTemplate(name, availableExercises)
+        else Result.failure(IllegalStateException("Cloud assist is off"))
 
     override suspend fun getQuickWorkoutExercises(
         focus: WorkoutFocus,

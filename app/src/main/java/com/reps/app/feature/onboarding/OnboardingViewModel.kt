@@ -26,7 +26,8 @@ data class OnboardingState(
     val hasShoulderRestriction: Boolean = false,
     val selectedDietaryRestrictions: Set<String> = emptySet(),
     val selectedCuisinePreferences: Set<String> = emptySet(),
-    val isCompleting: Boolean = false
+    val isCompleting: Boolean = false,
+    val completeFailed: Boolean = false
 ) {
     val totalSteps: Int get() = 5
     val canGoNext: Boolean get() = when (currentStep) {
@@ -96,21 +97,25 @@ class OnboardingViewModel @Inject constructor(
 
     fun completeOnboarding() {
         val s = _state.value
-        _state.update { it.copy(isCompleting = true) }
+        _state.update { it.copy(isCompleting = true, completeFailed = false) }
         viewModelScope.launch {
-            userPreferencesDataStore.updateProfile(
-                name = s.name.trim(),
-                age = s.age.toIntOrNull() ?: 0,
-                weightKg = s.weightKg.toDoubleOrNull() ?: 0.0,
-                targetWeightKg = s.targetWeightKg.toDoubleOrNull() ?: 0.0,
-                heightCm = s.heightCm.toDoubleOrNull() ?: 0.0,
-                activityLevel = s.activityLevel.name,
-                workoutDaysPerWeek = s.workoutDaysPerWeek,
-                hasShoulderRestriction = s.hasShoulderRestriction,
-                dietaryRestrictions = s.selectedDietaryRestrictions.toList(),
-                cuisinePreferences = s.selectedCuisinePreferences.toList()
-            )
-            appSettingsDataStore.setOnboardingComplete(true)
+            try {
+                userPreferencesDataStore.updateProfile(
+                    name = s.name.trim(),
+                    age = s.age.toIntOrNull() ?: 0,
+                    weightKg = s.weightKg.toDoubleOrNull() ?: 0.0,
+                    targetWeightKg = s.targetWeightKg.toDoubleOrNull() ?: 0.0,
+                    heightCm = s.heightCm.toDoubleOrNull() ?: 0.0,
+                    activityLevel = s.activityLevel.name,
+                    workoutDaysPerWeek = s.workoutDaysPerWeek,
+                    hasShoulderRestriction = s.hasShoulderRestriction,
+                    dietaryRestrictions = s.selectedDietaryRestrictions.toList(),
+                    cuisinePreferences = s.selectedCuisinePreferences.toList()
+                )
+                appSettingsDataStore.setOnboardingComplete(true)
+            } catch (_: Exception) {
+                _state.update { it.copy(isCompleting = false, completeFailed = true) }
+            }
         }
     }
 }

@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.ui.components.AiErrorInline
+import com.reps.app.ui.components.resolveAiErrorMessage
 import com.reps.app.ui.theme.RepsTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -190,12 +192,10 @@ fun CreateWorkoutTemplateScreen(
                             }
                         }
                     }
-                    val estimationError = state.estimationError
-                    if (estimationError != null) {
-                        Text(
-                            text = estimationError,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
+                    state.estimationError?.let { errorKey ->
+                        AiErrorInline(
+                            message = resolveAiErrorMessage(errorKey),
+                            onRetry = viewModel::estimateWorkout
                         )
                     }
                 }

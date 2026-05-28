@@ -1,5 +1,9 @@
 package com.reps.app.feature.dashboard
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,7 +26,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -42,6 +49,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -72,10 +80,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -94,21 +104,25 @@ import com.reps.app.core.domain.model.GoalProgress
 import com.reps.app.core.domain.model.LoggedFood
 import com.reps.app.core.domain.model.MealSlot
 import com.reps.app.core.domain.model.MealSlotLog
+import com.reps.app.ui.components.AiErrorInline
+import com.reps.app.ui.components.ServingsEditDialog
+import com.reps.app.ui.theme.MacroColors
 import com.reps.app.ui.theme.RepsTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
-private val COLOR_CARBS = Color(0xFF4FC3F7)
-private val COLOR_FAT = Color(0xFFFFB74D)
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("EEE, MMM d")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    initialFocusDate: String? = null,
     onNavigateToFoodSearch: (date: String, slot: String) -> Unit = { _, _ -> },
     onNavigateToBarcode: (date: String, slot: String) -> Unit = { _, _ -> },
     onNavigateToNaturalLanguage: (date: String, slot: String) -> Unit = { _, _ -> },
     onNavigateToProgress: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,10 +132,29 @@ fun DashboardScreen(
     val undoLabel = stringResource(R.string.undo)
     val deletedMsg = stringResource(R.string.undo_delete_food)
 
+    LaunchedEffect(initialFocusDate) {
+        if (!initialFocusDate.isNullOrBlank()) {
+            runCatching { LocalDate.parse(initialFocusDate) }
+                .getOrNull()
+                ?.let { viewModel.setSelectedDate(it) }
+        }
+    }
+
     // Haptic feedback when protein goal is reached
     val proteinGoalReached = state.macros.proteinProgress >= 1f
+    var showProteinCelebration by remember { mutableStateOf(false) }
     LaunchedEffect(proteinGoalReached) {
-        if (proteinGoalReached) hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (!proteinGoalReached) return@LaunchedEffect
+        if (viewModel.hasProteinCelebrationToday()) return@LaunchedEffect
+        showProteinCelebration = true
+        viewModel.markProteinCelebrated()
+        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+
+    LaunchedEffect(state.selectedDate, state.selectedTab) {
+        if (state.selectedTab == DashboardTab.TODAY) {
+            viewModel.tryAutoFetchInsightIfNeeded()
+        }
     }
 
     // Undo snackbar for swipe-to-delete
@@ -172,15 +205,32 @@ fun DashboardScreen(
                 )
             }
 
-            when (state.selectedTab) {
-                DashboardTab.TODAY -> TodayTab(
-                    state = state,
-                    onSlotClick = viewModel::openSlotSheet,
-                    onAddWater = viewModel::addWater,
-                    onNavigateToProgress = onNavigateToProgress,
-                    onRefreshInsight = viewModel::requestInsight
-                )
-                DashboardTab.PROGRESS -> ProgressTab(state = state)
+            AnimatedContent(
+                targetState = state.selectedTab,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(180))
+                },
+                label = "dashboard_tab"
+            ) { tab ->
+                when (tab) {
+                    DashboardTab.TODAY -> TodayTab(
+                        state = state,
+                        showProteinCelebration = showProteinCelebration,
+                        onDismissProteinCelebration = { showProteinCelebration = false },
+                        onSlotClick = viewModel::openSlotSheet,
+                        onAddWater = viewModel::addWater,
+                        onNavigateToProgress = onNavigateToProgress,
+                        onNavigateToSettings = onNavigateToSettings,
+                        onRefreshAll = viewModel::onRefreshAll,
+                        onRetryInsight = viewModel::requestInsight
+                    )
+                    DashboardTab.PROGRESS -> ProgressTab(
+                        state = state,
+                        onNavigateToProgress = onNavigateToProgress,
+                        onLogOnDashboard = { viewModel.onTabChange(DashboardTab.TODAY) }
+                    )
+                }
             }
         }
     }
@@ -198,6 +248,8 @@ fun DashboardScreen(
                 slotLog = slotLog,
                 suggestion = state.mealSuggestion,
                 isFetchingSuggestion = state.isFetchingSuggestion,
+                suggestionFailed = state.suggestionFailed,
+                onRetrySuggestion = viewModel::requestMealSuggestion,
                 onSearchFood = {
                     viewModel.closeSlotSheet()
                     onNavigateToFoodSearch(viewModel.getSelectedDateStr(), slot.name)
@@ -249,7 +301,7 @@ private fun DateNavigationHeader(
             today.minusDays(1) -> stringResource(R.string.date_yesterday)
             else -> selectedDate.format(DATE_FORMATTER)
         }
-        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         IconButton(
             onClick = onNextDay,
             enabled = selectedDate < today
@@ -268,35 +320,57 @@ private fun DateNavigationHeader(
 @Composable
 private fun TodayTab(
     state: DashboardUiState,
+    showProteinCelebration: Boolean,
+    onDismissProteinCelebration: () -> Unit,
     onSlotClick: (MealSlot) -> Unit,
     onAddWater: (Int) -> Unit,
     onNavigateToProgress: () -> Unit,
-    onRefreshInsight: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onRefreshAll: () -> Unit,
+    onRetryInsight: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+    val onAddWaterWithHaptic: (Int) -> Unit = { ml ->
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        onAddWater(ml)
+    }
     PullToRefreshBox(
-        isRefreshing = state.isFetchingInsight,
-        onRefresh = onRefreshInsight,
+        isRefreshing = state.isRefreshingAll || state.isFetchingInsight,
+        onRefresh = onRefreshAll,
         modifier = Modifier.fillMaxSize()
     ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        item {
-            MacroRingSection(macros = state.macros, modifier = Modifier.padding(16.dp))
+        if (showProteinCelebration) {
+            item {
+                ProteinGoalCelebrationBanner(
+                    onDismiss = onDismissProteinCelebration,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
         }
         item {
-            CalorieWaterSection(
+            MacroHeroCard(
                 macros = state.macros,
                 waterMl = state.waterMl,
                 waterTarget = state.waterTarget,
-                onAddWater = onAddWater,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                onAddWater = onAddWaterWithHaptic,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
-        item { Spacer(Modifier.height(12.dp)) }
+        item { Spacer(Modifier.height(8.dp)) }
         if (state.goalProgress != null) {
             item {
                 GoalProgressCard(
                     goalProgress = state.goalProgress,
                     onTrackProgress = onNavigateToProgress,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+        } else if (!state.isProfileComplete) {
+            item {
+                ProfileIncompleteCard(
+                    onOpenSettings = onNavigateToSettings,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 Spacer(Modifier.height(4.dp))
@@ -314,7 +388,8 @@ private fun TodayTab(
             InsightCard(
                 insight = state.dailyInsight,
                 isFetching = state.isFetchingInsight,
-                onRefresh = onRefreshInsight,
+                hasError = state.insightFailed,
+                onRefresh = onRetryInsight,
                 modifier = Modifier.padding(16.dp)
             )
         }
@@ -324,9 +399,68 @@ private fun TodayTab(
 }
 
 @Composable
-private fun MacroRingSection(macros: DayMacros, modifier: Modifier = Modifier) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+private fun ProteinGoalCelebrationBanner(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    stringResource(R.string.protein_goal_celebration_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    stringResource(R.string.protein_goal_celebration_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.ai_coach_action_dismiss))
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacroHeroCard(
+    macros: DayMacros,
+    waterMl: Int,
+    waterTarget: Int,
+    onAddWater: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val proteinGoalReached = macros.proteinProgress >= 1f
+    val calorieGoalReached = macros.calorieProgress >= 1f
+    val waterProgress = if (waterTarget > 0) (waterMl.toFloat() / waterTarget).coerceAtMost(1f) else 0f
+    val waterGoalReached = waterTarget > 0 && waterMl >= waterTarget
+
+    var proteinPulseTarget by remember { mutableStateOf(1f) }
+    LaunchedEffect(proteinGoalReached) {
+        if (!proteinGoalReached) return@LaunchedEffect
+        proteinPulseTarget = 1.07f
+        delay(320)
+        proteinPulseTarget = 1f
+    }
+    val ringScale by animateFloatAsState(
+        targetValue = proteinPulseTarget,
+        animationSpec = tween(280, easing = FastOutSlowInEasing),
+        label = "proteinPulse"
+    )
 
     val ringSpec = tween<Float>(durationMillis = 900, easing = FastOutSlowInEasing)
     val animatedProtein by animateFloatAsState(macros.proteinProgress, ringSpec, label = "protein")
@@ -337,144 +471,174 @@ private fun MacroRingSection(macros: DayMacros, modifier: Modifier = Modifier) {
         macros.fatProgress, tween(900, delayMillis = 160, easing = FastOutSlowInEasing), label = "fat"
     )
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Canvas(modifier = Modifier.size(160.dp)) {
-            val strokeWidth = 18.dp.toPx()
-            val gap = 6.dp.toPx()
-            val maxRadius = (size.minDimension / 2f) - strokeWidth / 2f
-
-            fun drawRing(radius: Float, progress: Float, color: Color) {
-                val topLeft = Offset(center.x - radius, center.y - radius)
-                val arcSize = Size(radius * 2, radius * 2)
-                val style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                drawArc(surfaceVariant, -90f, 360f, false, topLeft, arcSize, style = style)
-                if (progress > 0f) {
-                    drawArc(color, -90f, progress * 360f, false, topLeft, arcSize, style = style)
-                }
-            }
-
-            drawRing(maxRadius, animatedProtein, primaryColor)
-            drawRing(maxRadius - strokeWidth - gap, animatedCarbs, COLOR_CARBS)
-            drawRing(maxRadius - (strokeWidth + gap) * 2, animatedFat, COLOR_FAT)
-        }
-
-        Spacer(Modifier.width(16.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            MacroLegendRow(
-                color = primaryColor,
-                label = stringResource(R.string.dashboard_protein),
-                consumed = macros.protein.toInt(),
-                target = macros.targets.proteinG
-            )
-            MacroLegendRow(
-                color = COLOR_CARBS,
-                label = stringResource(R.string.dashboard_carbs),
-                consumed = macros.carbs.toInt(),
-                target = macros.targets.carbsG
-            )
-            MacroLegendRow(
-                color = COLOR_FAT,
-                label = stringResource(R.string.dashboard_fat),
-                consumed = macros.fat.toInt(),
-                target = macros.targets.fatG
-            )
-        }
-    }
-}
-
-@Composable
-private fun MacroLegendRow(color: Color, label: String, consumed: Int, target: Int) {
-    val remaining = target - consumed
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(color, RoundedCornerShape(2.dp))
-        )
-        Spacer(Modifier.width(8.dp))
-        Column {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                stringResource(R.string.dashboard_macro_grams, consumed, target),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (remaining > 0) {
-                Text(
-                    stringResource(R.string.dashboard_macro_remaining, remaining),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Text(
-                    stringResource(R.string.dashboard_macro_goal_met),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF4CAF50)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CalorieWaterSection(
-    macros: DayMacros,
-    waterMl: Int,
-    waterTarget: Int,
-    onAddWater: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val caloriesRemaining = (macros.targets.calories - macros.calories.toInt()).coerceAtLeast(0)
+    val macroRingDescription = stringResource(
+        R.string.cd_macro_rings,
+        macros.protein.toInt(),
+        macros.targets.proteinG,
+        macros.carbs.toInt(),
+        macros.targets.carbsG,
+        macros.fat.toInt(),
+        macros.targets.fatG
+    )
     val calorieDesc = stringResource(R.string.cd_calorie_progress, macros.calories.toInt(), macros.targets.calories)
     val waterDesc = stringResource(R.string.cd_water_progress, waterMl, waterTarget)
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.dashboard_calories), style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Canvas(
+                    modifier = Modifier
+                        .size(148.dp)
+                        .scale(ringScale)
+                        .semantics { contentDescription = macroRingDescription }
+                ) {
+                    val strokeWidth = 16.dp.toPx()
+                    val gap = 5.dp.toPx()
+                    val maxRadius = (size.minDimension / 2f) - strokeWidth / 2f
+
+                    fun drawRing(radius: Float, progress: Float, color: Color) {
+                        val topLeft = Offset(center.x - radius, center.y - radius)
+                        val arcSize = Size(radius * 2, radius * 2)
+                        val style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        drawArc(surfaceVariant, -90f, 360f, false, topLeft, arcSize, style = style)
+                        if (progress > 0f) {
+                            drawArc(color, -90f, progress * 360f, false, topLeft, arcSize, style = style)
+                        }
+                    }
+
+                    drawRing(maxRadius, animatedProtein, MacroColors.Protein)
+                    drawRing(maxRadius - strokeWidth - gap, animatedCarbs, MacroColors.Carbs)
+                    drawRing(maxRadius - (strokeWidth + gap) * 2, animatedFat, MacroColors.Fat)
+                }
+
+                Spacer(Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            stringResource(R.string.dashboard_calories),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (calorieGoalReached) {
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = stringResource(R.string.dashboard_macro_goal_met),
+                                tint = MacroColors.GoalMet,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                     Text(
-                        stringResource(R.string.dashboard_calories_format, macros.calories.toInt(), macros.targets.calories),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
+                        text = "${macros.calories.toInt()}",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.dashboard_calories_format,
+                            macros.calories.toInt(),
+                            macros.targets.calories
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!calorieGoalReached && caloriesRemaining > 0) {
+                        Text(
+                            stringResource(R.string.dashboard_calories_remaining, caloriesRemaining),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else if (calorieGoalReached) {
+                        Text(
+                            stringResource(R.string.dashboard_macro_goal_met),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MacroColors.GoalMet
+                        )
+                    }
+                    LinearProgressIndicator(
+                        progress = { macros.calorieProgress.coerceAtMost(1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .semantics { contentDescription = calorieDesc },
+                        color = MacroColors.Protein,
+                        trackColor = surfaceVariant
                     )
                 }
-                LinearProgressIndicator(
-                    progress = { macros.calorieProgress },
-                    modifier = Modifier.fillMaxWidth().height(6.dp)
-                        .semantics { contentDescription = calorieDesc },
-                    color = primaryColor,
-                    trackColor = surfaceVariant
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                MacroLegendRow(
+                    color = MacroColors.Protein,
+                    label = stringResource(R.string.dashboard_protein),
+                    consumed = macros.protein.toInt(),
+                    target = macros.targets.proteinG,
+                    modifier = Modifier.weight(1f)
+                )
+                MacroLegendRow(
+                    color = MacroColors.Carbs,
+                    label = stringResource(R.string.dashboard_carbs),
+                    consumed = macros.carbs.toInt(),
+                    target = macros.targets.carbsG,
+                    modifier = Modifier.weight(1f)
+                )
+                MacroLegendRow(
+                    color = MacroColors.Fat,
+                    label = stringResource(R.string.dashboard_fat),
+                    consumed = macros.fat.toInt(),
+                    target = macros.targets.fatG,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.dashboard_water), style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            stringResource(R.string.dashboard_water),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (waterGoalReached) {
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = stringResource(R.string.dashboard_macro_goal_met),
+                                tint = MacroColors.GoalMet,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                     Text(
                         stringResource(R.string.dashboard_water_format, waterMl, waterTarget),
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (waterGoalReached) MacroColors.GoalMet else MaterialTheme.colorScheme.onSurface
                     )
                 }
-                val waterProgress = if (waterTarget > 0) (waterMl.toFloat() / waterTarget).coerceAtMost(1f) else 0f
                 LinearProgressIndicator(
                     progress = { waterProgress },
-                    modifier = Modifier.fillMaxWidth().height(6.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
                         .semantics { contentDescription = waterDesc },
-                    color = COLOR_CARBS,
+                    color = MacroColors.Water,
                     trackColor = surfaceVariant
                 )
                 Row(
@@ -497,38 +661,79 @@ private fun CalorieWaterSection(
 }
 
 @Composable
+private fun MacroLegendRow(
+    color: Color,
+    label: String,
+    consumed: Int,
+    target: Int,
+    modifier: Modifier = Modifier
+) {
+    val remaining = target - consumed
+    Row(modifier = modifier, verticalAlignment = Alignment.Top) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(color, RoundedCornerShape(2.dp))
+        )
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(R.string.dashboard_macro_grams, consumed, target),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (remaining > 0) {
+                Text(
+                    stringResource(R.string.dashboard_macro_remaining, remaining),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    stringResource(R.string.dashboard_macro_goal_met),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MacroColors.GoalMet
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SlotCard(
     slot: MealSlot,
     slotLog: MealSlotLog,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val addCd = stringResource(R.string.dashboard_slot_add_a11y, slot.displayName)
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(14.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(slot.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(slot.displayName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Text(slot.timeHint, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 if (slotLog.entries.isEmpty()) {
                     Text(
                         stringResource(R.string.dashboard_slot_empty),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
                     Text(
                         stringResource(R.string.dashboard_slot_kcal, slotLog.totalCalories.toInt()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MacroColors.Protein,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         stringResource(R.string.slot_total_macros,
@@ -540,8 +745,9 @@ private fun SlotCard(
             }
             Icon(
                 Icons.Default.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                contentDescription = addCd,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
             )
         }
     }
@@ -551,6 +757,7 @@ private fun SlotCard(
 private fun InsightCard(
     insight: String?,
     isFetching: Boolean,
+    hasError: Boolean,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -568,7 +775,7 @@ private fun InsightCard(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(
                         Icons.Filled.AutoAwesome,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.dashboard_insight_title),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
@@ -584,46 +791,100 @@ private fun InsightCard(
                     IconButton(onClick = onRefresh) {
                         Icon(
                             Icons.Filled.Refresh,
-                            contentDescription = stringResource(R.string.dashboard_refresh_insight),
+                            contentDescription = stringResource(R.string.cd_refresh_insight),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = insight ?: stringResource(R.string.dashboard_insight_placeholder),
-                style = MaterialTheme.typography.bodySmall,
-                color = if (insight != null) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(Modifier.height(8.dp))
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                when {
+                    hasError -> AiErrorInline(
+                        message = stringResource(R.string.ai_insight_error),
+                        onRetry = onRefresh
+                    )
+                    isFetching && insight == null -> InsightLoadingSkeleton()
+                    insight != null -> Text(
+                        text = insight,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    else -> {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.dashboard_insight_placeholder),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = onRefresh) {
+                                Text(stringResource(R.string.dashboard_insight_get))
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ProgressTab(state: DashboardUiState) {
+private fun ProgressTab(
+    state: DashboardUiState,
+    onNavigateToProgress: () -> Unit,
+    onLogOnDashboard: () -> Unit
+) {
     if (state.weekHistory.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                stringResource(R.string.progress_no_data),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Restaurant,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                    modifier = Modifier.size(48.dp)
+                )
+                Text(
+                    stringResource(R.string.progress_no_data),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                Button(onClick = onLogOnDashboard) {
+                    Text(stringResource(R.string.progress_no_data_cta))
+                }
+                OutlinedButton(onClick = onNavigateToProgress) {
+                    Text(stringResource(R.string.progress_open_full))
+                }
+            }
         }
         return
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
-            Text(
-                stringResource(R.string.progress_7day_heading),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text(
+                    stringResource(R.string.progress_7day_heading),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.dashboard_progress_tab_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onNavigateToProgress, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.progress_open_full))
+                }
+            }
         }
         item {
             Row(
@@ -633,13 +894,13 @@ private fun ProgressTab(state: DashboardUiState) {
                 StatCard(
                     label = stringResource(R.string.progress_protein_goal),
                     value = stringResource(R.string.progress_protein_goal_value, state.weekStats.proteinHitDays),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MacroColors.Protein,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     label = stringResource(R.string.progress_streak),
                     value = stringResource(R.string.progress_streak_value, state.weekStats.currentStreak),
-                    color = COLOR_FAT,
+                    color = MacroColors.Fat,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -649,13 +910,13 @@ private fun ProgressTab(state: DashboardUiState) {
             StatCard(
                 label = stringResource(R.string.progress_avg_calories),
                 value = stringResource(R.string.progress_avg_calories_value, state.weekStats.avgCalories),
-                color = COLOR_CARBS,
+                color = MacroColors.Carbs,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             )
         }
         item { Spacer(Modifier.height(16.dp)) }
         items(state.weekHistory.sortedByDescending { it.date }, key = { it.date }) { dayLog ->
-            WeekDayRow(dayLog = dayLog, modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp))
+            WeekDayRow(dayLog = dayLog, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -670,7 +931,8 @@ private fun StatCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(14.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -681,24 +943,113 @@ private fun StatCard(
 }
 
 @Composable
+private fun InsightLoadingSkeleton() {
+    val placeholder = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+                .background(placeholder, RoundedCornerShape(4.dp))
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.75f)
+                .height(12.dp)
+                .background(placeholder, RoundedCornerShape(4.dp))
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.55f)
+                .height(12.dp)
+                .background(placeholder, RoundedCornerShape(4.dp))
+        )
+    }
+}
+
+@Composable
 private fun WeekDayRow(dayLog: DayLog, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(dayLog.date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                "${dayLog.totalCalories.toInt()} kcal  ·  P ${dayLog.totalProtein.toInt()}g",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(dayLog.date, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.dashboard_slot_kcal, dayLog.totalCalories.toInt()),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "·",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Text(
+                    text = "P ${dayLog.totalProtein.toInt()}g",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MacroColors.Protein
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SlotAddActionTile(
+    icon: ImageVector,
+    label: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    emphasized: Boolean = false
+) {
+    if (emphasized) {
+        Button(
+            onClick = onClick,
+            modifier = modifier,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(label)
+        }
+    } else {
+        OutlinedCard(
+            onClick = onClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 14.dp, horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = contentDescription,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }
@@ -710,6 +1061,8 @@ private fun MealSlotSheet(
     slotLog: MealSlotLog,
     suggestion: AiMealSuggestion?,
     isFetchingSuggestion: Boolean,
+    suggestionFailed: Boolean,
+    onRetrySuggestion: () -> Unit,
     onSearchFood: () -> Unit,
     onScanBarcode: () -> Unit,
     onNaturalLanguage: () -> Unit,
@@ -722,7 +1075,13 @@ private fun MealSlotSheet(
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(slot.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(slot.timeHint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
+            Text(
+                stringResource(R.string.dashboard_slot_kcal, slotLog.totalCalories.toInt()),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MacroColors.Protein
+            )
             Text(
                 stringResource(R.string.slot_total_macros,
                     slotLog.totalProtein, slotLog.totalCarbs, slotLog.totalFat),
@@ -800,34 +1159,31 @@ private fun MealSlotSheet(
 
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Button(
+            SlotAddActionTile(
+                icon = Icons.Default.Search,
+                label = stringResource(R.string.slot_add_food_search),
+                contentDescription = stringResource(R.string.cd_search_food),
                 onClick = onSearchFood,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.slot_add_food_search))
-            }
+                emphasized = true
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
+                SlotAddActionTile(
+                    icon = Icons.Default.QrCodeScanner,
+                    label = stringResource(R.string.slot_add_food_scan),
+                    contentDescription = stringResource(R.string.cd_scan_barcode),
                     onClick = onScanBarcode,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.slot_add_food_scan), style = MaterialTheme.typography.labelMedium)
-                }
-                OutlinedButton(
+                )
+                SlotAddActionTile(
+                    icon = Icons.Default.TextFields,
+                    label = stringResource(R.string.slot_add_food_nl),
+                    contentDescription = stringResource(R.string.cd_describe_meal),
                     onClick = onNaturalLanguage,
                     modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.TextFields, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.slot_add_food_nl), style = MaterialTheme.typography.labelMedium)
-                }
+                )
             }
             OutlinedButton(
                 onClick = onSuggestMeal,
@@ -838,9 +1194,19 @@ private fun MealSlotSheet(
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
                 }
-                Icon(Icons.Filled.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Filled.AutoAwesome,
+                    contentDescription = stringResource(R.string.cd_suggest_meal),
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.slot_suggest_meal), style = MaterialTheme.typography.labelMedium)
+            }
+            if (suggestionFailed) {
+                AiErrorInline(
+                    message = stringResource(R.string.ai_suggestion_error),
+                    onRetry = onRetrySuggestion
+                )
             }
         }
     }
@@ -900,6 +1266,37 @@ private fun SwipeToDeleteEntry(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileIncompleteCard(
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                stringResource(R.string.goal_profile_incomplete_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                stringResource(R.string.goal_profile_incomplete_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.goal_profile_incomplete_cta))
             }
         }
     }
@@ -982,50 +1379,6 @@ private fun GoalProgressCard(
             }
         }
     }
-}
-
-@Composable
-private fun ServingsEditDialog(
-    entry: LoggedFood,
-    onDismiss: () -> Unit,
-    onSave: (entryId: Long, servings: Double) -> Unit
-) {
-    var servingsText by remember(entry.entryId) {
-        val initial = if (entry.servingMultiplier % 1.0 == 0.0)
-            entry.servingMultiplier.toInt().toString()
-        else "%.1f".format(entry.servingMultiplier)
-        mutableStateOf(initial)
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(entry.food.name, style = MaterialTheme.typography.titleMedium) },
-        text = {
-            OutlinedTextField(
-                value = servingsText,
-                onValueChange = { servingsText = it },
-                label = { Text(stringResource(R.string.edit_servings_label)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    servingsText.toDoubleOrNull()?.takeIf { it > 0 }?.let {
-                        onSave(entry.entryId, it)
-                    }
-                }
-            ) {
-                Text(stringResource(R.string.edit_servings_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.edit_servings_cancel))
-            }
-        }
-    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0A0A)

@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.ui.components.AiErrorInline
 import com.reps.app.ai.ExerciseAlternative
 import com.reps.app.core.domain.model.CompletedSet
 import com.reps.app.core.domain.model.Exercise
@@ -82,7 +83,8 @@ fun ActiveWorkoutScreen(
         ) {
             ShoulderWarningSheet(
                 warning = warning,
-                onDismiss = viewModel::dismissShoulderWarning
+                onDismiss = viewModel::dismissShoulderWarning,
+                onRetryAlternatives = viewModel::retryShoulderAlternatives
             )
         }
     }
@@ -321,7 +323,8 @@ private fun SetRow(set: CompletedSet, onComplete: (reps: Int?, weightKg: Double?
 @Composable
 private fun ShoulderWarningSheet(
     warning: ShoulderWarning,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onRetryAlternatives: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -359,6 +362,11 @@ private fun ShoulderWarningSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        } else if (warning.alternativesFailed) {
+            AiErrorInline(
+                message = stringResource(R.string.ai_shoulder_alternatives_error),
+                onRetry = onRetryAlternatives
+            )
         } else if (warning.alternatives.isNotEmpty()) {
             Text(
                 text = stringResource(R.string.shoulder_alternatives_title),

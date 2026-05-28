@@ -3,6 +3,7 @@ package com.reps.app.feature.workout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reps.app.ai.AIRepository
+import com.reps.app.ai.AiUserMessages
 import com.reps.app.ai.EstimatedExercise
 import com.reps.app.core.di.IoDispatcher
 import com.reps.app.core.domain.repository.WorkoutRepository
@@ -67,7 +68,9 @@ class CustomExerciseCreationViewModel @Inject constructor(
                     }
                 },
                 onFailure = {
-                    _state.update { it.copy(isEstimating = false, estimationError = "Estimation failed. Fill details manually.") }
+                    _state.update {
+                        it.copy(isEstimating = false, estimationError = AiUserMessages.ESTIMATE_EXERCISE_FAILED)
+                    }
                 }
             )
         }
@@ -94,7 +97,9 @@ class CustomExerciseCreationViewModel @Inject constructor(
                 }
                 _state.update { it.copy(isSubmitting = false, savedExerciseId = id) }
             } catch (e: Exception) {
-                _state.update { it.copy(isSubmitting = false, estimationError = "Failed to save exercise.") }
+                _state.update {
+                    it.copy(isSubmitting = false, estimationError = AiUserMessages.SAVE_EXERCISE_FAILED)
+                }
             }
         }
     }

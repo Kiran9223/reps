@@ -2,9 +2,15 @@
 > *Every rep starts on the plate.*
 
 ## What is Reps?
-Reps is a fully local, AI-powered Android fitness and nutrition tracking app.
-It helps users lose fat, preserve muscle, and hit protein goals using on-device
-Gemini Nano AI — no cloud, no subscriptions, no data leaving the phone.
+Reps is a **local-first**, AI-powered Android fitness and nutrition tracking app.
+User data (logs, profile, library) stays on-device in Room + DataStore.
+
+**AI routing (see README “Privacy & Data” and `HybridAIRepository`):**
+- **On-device (MediaPipe + Gemma at `/data/local/tmp/llm/model.task`):** NL meal parse, insights, meal suggest, grocery categorize, nutrition estimate, shoulder alts, quick workout.
+- **Cloud assist (optional `GEMINI_API_KEY`):** AI Coach chat, Import Plan parse, workout template generation, exercise detail enrichment (with on-device fallback).
+- **Rule-based fallback** when the on-device model is missing.
+
+Do not describe the app as “fully local / no cloud” in user-facing copy without qualifying optional Gemini and optional food/exercise APIs.
 
 **Min SDK:** 31 (Android 12+)
 **Target SDK:** 35 (Android 15)

@@ -3,6 +3,8 @@ package com.reps.app.feature.importplan
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reps.app.ai.AIPrivacyStatus
+import com.reps.app.ai.CloudAssistGate
 import com.reps.app.ai.AIRepository
 import com.reps.app.ai.ImportPlanType
 import com.reps.app.core.di.IoDispatcher
@@ -23,7 +25,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-enum class ImportPhase { IDLE, PARSING, REVIEW, SAVING, DONE, ERROR }
+enum class ImportPhase {
+    IDLE, PARSING, REVIEW, SAVING, SUCCESS, PARTIAL, FAILURE, PARSE_ERROR
+}
 
 data class ReviewExercise(val name: String, val sets: Int, val reps: String)
 data class ReviewWorkoutDay(val label: String, val exercises: List<ReviewExercise>)
@@ -40,13 +44,17 @@ data class ImportPlanUiState(
     val phase: ImportPhase = ImportPhase.IDLE,
     val reviewWorkout: ReviewWorkoutPlan? = null,
     val reviewMeal: ReviewMealPlan? = null,
-    val statusMessage: String? = null
+    val statusMessage: String? = null,
+    val cloudAssistAvailable: Boolean = false,
+    val cloudAssistActive: Boolean = false
 )
 
 @HiltViewModel
 class ImportPlanViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val aiRepository: AIRepository,
+    aiPrivacyStatus: AIPrivacyStatus,
+    private val cloudAssistGate: CloudAssistGate,
     private val workoutRepository: WorkoutRepository,
     private val mealPlanRepository: MealPlanRepository,
     private val foodRepository: FoodRepository,
@@ -57,18 +65,30 @@ class ImportPlanViewModel @Inject constructor(
         ImportPlanUiState(
             planType = savedStateHandle.get<String>("type")
                 ?.let { runCatching { ImportPlanType.valueOf(it) }.getOrElse { ImportPlanType.WORKOUT } }
-                ?: ImportPlanType.WORKOUT
+                ?: ImportPlanType.WORKOUT,
+            cloudAssistAvailable = aiPrivacyStatus.cloudAssistAvailable,
+            cloudAssistActive = cloudAssistGate.isCloudActiveSync()
         )
     )
     val uiState: StateFlow<ImportPlanUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            cloudAssistGate.isCloudActive.collect { active ->
+                _uiState.update { it.copy(cloudAssistActive = active) }
+            }
+        }
+    }
+
     fun onInputChange(text: String) { _uiState.update { it.copy(inputText = text) }  }
 
-    fun onTypeChange(type: ImportPlanType) { _uiState.update { it.copy(planType = type) } }
+    fun onTypeChange(type: ImportPlanType) {
+        _uiState.update { it.copy(planType = type, inputText = "") }
+    }
 
     fun parsePlan() {
         val text = _uiState.value.inputText.trim()
-        if (text.isBlank()) return
+        if (text.isBlank() || !_uiState.value.cloudAssistActive) return
         viewModelScope.launch {
             _uiState.update { it.copy(phase = ImportPhase.PARSING) }
             val result = withContext(ioDispatcher) {
@@ -95,20 +115,14 @@ class ImportPlanViewModel @Inject constructor(
                             )
                         }
                         else -> _uiState.update {
-                            it.copy(phase = ImportPhase.ERROR, statusMessage = "Could not parse plan. Try re-pasting the text.")
+                            it.copy(phase = ImportPhase.PARSE_ERROR, statusMessage = null)
                         }
                     }
                 },
                 onFailure = { e ->
                     android.util.Log.e("ImportPlan", "Parse failed: ${e::class.simpleName} — ${e.message}", e)
                     _uiState.update {
-                        it.copy(
-                            phase = ImportPhase.ERROR,
-                            statusMessage = if (e.message?.contains("not available") == true)
-                                "On-device AI is not available. Make sure the model is installed."
-                            else
-                                "Failed to parse: ${e.message}"
-                        )
+                        it.copy(phase = ImportPhase.PARSE_ERROR, statusMessage = null)
                     }
                 }
             )
@@ -116,6 +130,8 @@ class ImportPlanViewModel @Inject constructor(
     }
 
     fun retryInput() { _uiState.update { it.copy(phase = ImportPhase.IDLE, statusMessage = null) } }
+
+    fun backToReview() { _uiState.update { it.copy(phase = ImportPhase.REVIEW, statusMessage = null) } }
 
     // Workout review edits
     fun updateWorkoutPlanName(name: String) {
@@ -136,6 +152,37 @@ class ImportPlanViewModel @Inject constructor(
                 if (i == dayIndex) day.copy(exercises = day.exercises.toMutableList().also { it.removeAt(exerciseIndex) })
                 else day
             }.filter { it.exercises.isNotEmpty() }
+            state.copy(reviewWorkout = plan.copy(days = days))
+        }
+    }
+
+    fun updateExerciseName(dayIndex: Int, exerciseIndex: Int, name: String) {
+        updateExercise(dayIndex, exerciseIndex) { it.copy(name = name) }
+    }
+
+    fun updateExerciseSets(dayIndex: Int, exerciseIndex: Int, sets: Int) {
+        updateExercise(dayIndex, exerciseIndex) { it.copy(sets = sets.coerceAtLeast(1)) }
+    }
+
+    fun updateExerciseReps(dayIndex: Int, exerciseIndex: Int, reps: String) {
+        updateExercise(dayIndex, exerciseIndex) { it.copy(reps = reps) }
+    }
+
+    private fun updateExercise(
+        dayIndex: Int,
+        exerciseIndex: Int,
+        transform: (ReviewExercise) -> ReviewExercise
+    ) {
+        _uiState.update { state ->
+            val plan = state.reviewWorkout ?: return@update state
+            val days = plan.days.mapIndexed { di, day ->
+                if (di != dayIndex) return@mapIndexed day
+                day.copy(
+                    exercises = day.exercises.mapIndexed { ei, ex ->
+                        if (ei == exerciseIndex) transform(ex) else ex
+                    }
+                )
+            }
             state.copy(reviewWorkout = plan.copy(days = days))
         }
     }
@@ -167,22 +214,74 @@ class ImportPlanViewModel @Inject constructor(
         }
     }
 
-    fun confirmImport() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(phase = ImportPhase.SAVING) }
-            val message = withContext(ioDispatcher) {
-                runCatching {
-                    val state = _uiState.value
-                    if (state.reviewWorkout != null) saveWorkoutPlan(state.reviewWorkout)
-                    else if (state.reviewMeal != null) saveMealPlan(state.reviewMeal)
-                    else "Nothing to import."
-                }.getOrElse { "Import failed: ${it.message}" }
+    fun updateFoodName(dayIndex: Int, slotIndex: Int, foodIndex: Int, name: String) {
+        updateFood(dayIndex, slotIndex, foodIndex) { it.copy(name = name) }
+    }
+
+    fun updateFoodQuantity(dayIndex: Int, slotIndex: Int, foodIndex: Int, quantity: Double) {
+        updateFood(dayIndex, slotIndex, foodIndex) { it.copy(quantity = quantity.coerceAtLeast(0.0)) }
+    }
+
+    private fun updateFood(
+        dayIndex: Int,
+        slotIndex: Int,
+        foodIndex: Int,
+        transform: (ReviewFood) -> ReviewFood
+    ) {
+        _uiState.update { state ->
+            val plan = state.reviewMeal ?: return@update state
+            val days = plan.days.mapIndexed { di, day ->
+                if (di != dayIndex) return@mapIndexed day
+                val slots = day.slots.mapIndexed { si, slot ->
+                    if (si != slotIndex) return@mapIndexed slot
+                    slot.copy(
+                        foods = slot.foods.mapIndexed { fi, food ->
+                            if (fi == foodIndex) transform(food) else food
+                        }
+                    )
+                }
+                day.copy(slots = slots)
             }
-            _uiState.update { it.copy(phase = ImportPhase.DONE, statusMessage = message) }
+            state.copy(reviewMeal = plan.copy(days = days))
         }
     }
 
-    private suspend fun saveWorkoutPlan(plan: ReviewWorkoutPlan): String {
+    fun canConfirmImport(): Boolean {
+        val state = _uiState.value
+        state.reviewWorkout?.let { plan ->
+            return plan.days.any { it.exercises.isNotEmpty() }
+        }
+        state.reviewMeal?.let { plan ->
+            return plan.days.any { day -> day.slots.any { it.foods.isNotEmpty() } }
+        }
+        return false
+    }
+
+    fun confirmImport() {
+        if (!canConfirmImport()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(phase = ImportPhase.SAVING) }
+            val outcome = withContext(ioDispatcher) {
+                runCatching {
+                    val state = _uiState.value
+                    when {
+                        state.reviewWorkout != null -> saveWorkoutPlan(state.reviewWorkout)
+                        state.reviewMeal != null -> saveMealPlan(state.reviewMeal)
+                        else -> ImportOutcome(ImportPhase.PARTIAL, "Nothing to import.")
+                    }
+                }.getOrElse {
+                    ImportOutcome(ImportPhase.FAILURE, "Import failed. Please try again.")
+                }
+            }
+            _uiState.update {
+                it.copy(phase = outcome.phase, statusMessage = outcome.message)
+            }
+        }
+    }
+
+    private data class ImportOutcome(val phase: ImportPhase, val message: String)
+
+    private suspend fun saveWorkoutPlan(plan: ReviewWorkoutPlan): ImportOutcome {
         val allExercises = workoutRepository.getExercises(ExerciseFilter()).first()
         var created = 0
         var skipped = 0
@@ -201,11 +300,23 @@ class ImportPlanViewModel @Inject constructor(
                 created++
             }
         }
-        return if (skipped == 0) "Created $created workout template(s)"
-        else "Created $created template(s), $skipped exercise(s) not in library"
+        return when {
+            created == 0 -> ImportOutcome(
+                ImportPhase.PARTIAL,
+                "No exercises matched your library. Add exercises first, or edit names in review."
+            )
+            skipped == 0 -> ImportOutcome(
+                ImportPhase.SUCCESS,
+                "Imported $created workout template(s)."
+            )
+            else -> ImportOutcome(
+                ImportPhase.SUCCESS,
+                "Imported $created template(s). $skipped exercise(s) were not in your library."
+            )
+        }
     }
 
-    private suspend fun saveMealPlan(plan: ReviewMealPlan): String {
+    private suspend fun saveMealPlan(plan: ReviewMealPlan): ImportOutcome {
         val draftSlots = mutableMapOf<Int, MutableMap<MealSlot, MutableList<Pair<Long, Double>>>>()
         var logged = 0
         var skipped = 0
@@ -225,10 +336,24 @@ class ImportPlanViewModel @Inject constructor(
                 }
             }
         }
-        if (draftSlots.isEmpty()) return "No foods matched your library. Add foods first, then retry."
+        if (draftSlots.isEmpty()) {
+            return ImportOutcome(
+                ImportPhase.PARTIAL,
+                "No foods matched your library. Add foods first, then retry."
+            )
+        }
         mealPlanRepository.createPlan(plan.name, null, "Imported", draftSlots)
-        return if (skipped == 0) "Meal plan \"${plan.name}\" created with $logged food(s)"
-        else "Created \"${plan.name}\" ($logged foods added, $skipped not in library)"
+        return if (skipped == 0) {
+            ImportOutcome(
+                ImportPhase.SUCCESS,
+                "Meal plan \"${plan.name}\" created with $logged food(s)."
+            )
+        } else {
+            ImportOutcome(
+                ImportPhase.SUCCESS,
+                "Created \"${plan.name}\" ($logged foods added, $skipped not in library)."
+            )
+        }
     }
 
     // Mappers from AI parsed models to review models

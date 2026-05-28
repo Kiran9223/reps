@@ -97,6 +97,14 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
         }
 
         if (state.currentStep > 1) {
+            if (state.completeFailed) {
+                Text(
+                    text = stringResource(R.string.onboarding_complete_error),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+            }
             OnboardingNavButtons(
                 currentStep = state.currentStep,
                 totalSteps = state.totalSteps,

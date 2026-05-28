@@ -95,7 +95,7 @@ fun FoodSearchScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onCustomFoodClick,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                icon = { Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_item)) },
                 text = { Text(stringResource(R.string.food_add_custom)) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -200,7 +200,7 @@ private fun SearchBar(
         onValueChange = onQueryChange,
         modifier = modifier,
         placeholder = { Text(stringResource(R.string.food_search_hint)) },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = stringResource(R.string.cd_search_food)) },
         trailingIcon = {
             Row {
                 if (query.isNotEmpty()) {

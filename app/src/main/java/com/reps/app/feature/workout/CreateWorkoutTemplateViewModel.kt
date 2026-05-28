@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reps.app.ai.AIRepository
+import com.reps.app.ai.AiUserMessages
 import com.reps.app.core.di.IoDispatcher
 import com.reps.app.core.domain.model.ExerciseFilter
 import com.reps.app.core.domain.model.TemplateExerciseDraft
@@ -164,7 +165,7 @@ class CreateWorkoutTemplateViewModel @Inject constructor(
                 onFailure = {
                     _state.value = _state.value.copy(
                         isEstimating = false,
-                        estimationError = "Generation failed. Add exercises manually."
+                        estimationError = AiUserMessages.GENERATE_WORKOUT_FAILED
                     )
                 }
             )

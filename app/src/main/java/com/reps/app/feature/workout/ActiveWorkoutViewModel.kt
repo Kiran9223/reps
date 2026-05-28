@@ -24,7 +24,8 @@ data class ShoulderWarning(
     val exerciseName: String,
     val muscleGroup: String,
     val alternatives: List<ExerciseAlternative> = emptyList(),
-    val isFetching: Boolean = false
+    val isFetching: Boolean = false,
+    val alternativesFailed: Boolean = false
 )
 
 data class ActiveWorkoutUiState(
@@ -92,14 +93,42 @@ class ActiveWorkoutViewModel @Inject constructor(
             val exerciseName = unsafeExercise.exercise.name
             val muscleGroup = unsafeExercise.exercise.muscleGroups.firstOrNull() ?: "General"
             _shoulderWarning.value = ShoulderWarning(exerciseName, muscleGroup, isFetching = true)
-            aiRepository.getShoulderSafeAlternatives(exerciseName, muscleGroup)
-                .onSuccess { alts ->
-                    _shoulderWarning.value = ShoulderWarning(exerciseName, muscleGroup, alts, isFetching = false)
-                }
-                .onFailure {
-                    _shoulderWarning.value = ShoulderWarning(exerciseName, muscleGroup, isFetching = false)
-                }
+            fetchShoulderAlternatives(exerciseName, muscleGroup)
         }
+    }
+
+    fun retryShoulderAlternatives() {
+        val warning = _shoulderWarning.value ?: return
+        viewModelScope.launch {
+            fetchShoulderAlternatives(warning.exerciseName, warning.muscleGroup)
+        }
+    }
+
+    private suspend fun fetchShoulderAlternatives(exerciseName: String, muscleGroup: String) {
+        _shoulderWarning.value = ShoulderWarning(
+            exerciseName,
+            muscleGroup,
+            isFetching = true,
+            alternativesFailed = false
+        )
+        aiRepository.getShoulderSafeAlternatives(exerciseName, muscleGroup)
+            .onSuccess { alts ->
+                _shoulderWarning.value = ShoulderWarning(
+                    exerciseName,
+                    muscleGroup,
+                    alts,
+                    isFetching = false,
+                    alternativesFailed = false
+                )
+            }
+            .onFailure {
+                _shoulderWarning.value = ShoulderWarning(
+                    exerciseName,
+                    muscleGroup,
+                    isFetching = false,
+                    alternativesFailed = true
+                )
+            }
     }
 
     fun dismissShoulderWarning() {

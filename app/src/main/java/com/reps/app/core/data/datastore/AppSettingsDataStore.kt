@@ -29,6 +29,9 @@ class AppSettingsDataStore @Inject constructor(
         val IS_SHOULDER_SAFE_ONLY = booleanPreferencesKey("is_shoulder_safe_only")
         val DAILY_INSIGHT_DATE = stringPreferencesKey("daily_insight_date")
         val DAILY_INSIGHT_TEXT = stringPreferencesKey("daily_insight_text")
+        val CLOUD_ASSIST_USER_ENABLED = booleanPreferencesKey("cloud_assist_user_enabled")
+        val PROTEIN_REMINDERS_ENABLED = booleanPreferencesKey("protein_reminders_enabled")
+        val PROTEIN_CELEBRATION_DATE = stringPreferencesKey("protein_celebration_date")
     }
 
     val isDbSeeded: Flow<Boolean> = dataStore.data.map { it[Keys.IS_DB_SEEDED] ?: false }
@@ -47,6 +50,18 @@ class AppSettingsDataStore @Inject constructor(
     val dailyInsight: Flow<String?> = dataStore.data.map { prefs ->
         val today = java.time.LocalDate.now().toString()
         if ((prefs[Keys.DAILY_INSIGHT_DATE] ?: "") == today) prefs[Keys.DAILY_INSIGHT_TEXT] else null
+    }
+
+    val cloudAssistUserEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[Keys.CLOUD_ASSIST_USER_ENABLED] ?: true
+    }
+
+    val proteinRemindersEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[Keys.PROTEIN_REMINDERS_ENABLED] ?: true
+    }
+
+    val proteinCelebrationDate: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[Keys.PROTEIN_CELEBRATION_DATE]
     }
 
     fun getWaterMl(dateStr: String): Flow<Int> = dataStore.data.map { prefs ->
@@ -77,6 +92,18 @@ class AppSettingsDataStore @Inject constructor(
             prefs[Keys.DAILY_INSIGHT_DATE] = java.time.LocalDate.now().toString()
             prefs[Keys.DAILY_INSIGHT_TEXT] = text
         }
+    }
+
+    suspend fun setCloudAssistUserEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.CLOUD_ASSIST_USER_ENABLED] = enabled }
+    }
+
+    suspend fun setProteinRemindersEnabled(enabled: Boolean) {
+        dataStore.edit { it[Keys.PROTEIN_REMINDERS_ENABLED] = enabled }
+    }
+
+    suspend fun setProteinCelebrationDate(dateStr: String) {
+        dataStore.edit { it[Keys.PROTEIN_CELEBRATION_DATE] = dateStr }
     }
 
     suspend fun addWater(dateStr: String, mlToAdd: Int) {

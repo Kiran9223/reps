@@ -56,6 +56,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
 import com.reps.app.core.domain.model.GroceryCategory
 import com.reps.app.core.domain.model.SavedGroceryItem
+import com.reps.app.ui.components.AiErrorInline
+import com.reps.app.ui.components.resolveAiErrorMessage
 import com.reps.app.ui.theme.RepsTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +70,7 @@ fun GroceryListScreen(
     val itemsByCategory by viewModel.itemsByCategory.collectAsStateWithLifecycle()
     val itemInput by viewModel.itemInput.collectAsStateWithLifecycle()
     val isCategorizing by viewModel.isCategorizing.collectAsStateWithLifecycle()
+    val categorizeError by viewModel.categorizeError.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val allItems = itemsByCategory.values.flatten()
@@ -95,7 +98,7 @@ fun GroceryListScreen(
                         }
                         context.startActivity(Intent.createChooser(intent, null))
                     }) {
-                        Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.grocery_share))
+                        Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.cd_share_grocery))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -105,9 +108,11 @@ fun GroceryListScreen(
             AddItemBar(
                 input = itemInput,
                 isCategorizing = isCategorizing,
+                categorizeError = categorizeError,
                 onInputChange = viewModel::onInputChange,
                 onAdd = viewModel::addItem,
-                onAddFromPlan = viewModel::addFromMealPlan
+                onAddFromPlan = viewModel::addFromMealPlan,
+                onRetryCategorize = viewModel::retryCategorize
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -210,9 +215,11 @@ private fun GroceryItemRow(
 private fun AddItemBar(
     input: String,
     isCategorizing: Boolean,
+    categorizeError: String?,
     onInputChange: (String) -> Unit,
     onAdd: () -> Unit,
-    onAddFromPlan: () -> Unit
+    onAddFromPlan: () -> Unit,
+    onRetryCategorize: () -> Unit
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -224,6 +231,13 @@ private fun AddItemBar(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .imePadding()
         ) {
+            categorizeError?.let { errorKey ->
+                AiErrorInline(
+                    message = resolveAiErrorMessage(errorKey),
+                    onRetry = onRetryCategorize,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -252,7 +266,7 @@ private fun AddItemBar(
                     ) {
                         Icon(
                             Icons.Filled.Add,
-                            contentDescription = stringResource(R.string.grocery_add_item),
+                            contentDescription = stringResource(R.string.cd_add_item),
                             tint = if (input.isNotBlank()) MaterialTheme.colorScheme.primary
                                    else MaterialTheme.colorScheme.onSurfaceVariant
                         )

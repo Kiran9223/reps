@@ -3,6 +3,8 @@ package com.reps.app.feature.ai
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reps.app.ai.AIAction
+import com.reps.app.ai.AIPrivacyStatus
+import com.reps.app.ai.CloudAssistGate
 import com.reps.app.ai.AIRepository
 import com.reps.app.ai.ChatMessage
 import com.reps.app.ai.ExerciseSpec
@@ -47,14 +49,19 @@ data class ChatUiState(
     val streamedText: String = "",
     val isStreaming: Boolean = false,
     val isAiAvailable: Boolean = true,
+    val showCloudNotice: Boolean = false,
     val pendingAction: AIAction? = null,
     val isConfirmingAction: Boolean = false,
-    val actionResult: String? = null
+    val actionResult: String? = null,
+    val snackbarMessage: String? = null,
+    val onDeviceLlmActive: Boolean = false
 )
 
 @HiltViewModel
 class AICoachViewModel @Inject constructor(
     private val aiRepository: AIRepository,
+    aiPrivacyStatus: AIPrivacyStatus,
+    private val cloudAssistGate: CloudAssistGate,
     private val aiChatMessageDao: AIChatMessageDao,
     private val userPrefs: UserPreferencesDataStore,
     private val mealLogRepository: MealLogRepository,
@@ -70,25 +77,46 @@ class AICoachViewModel @Inject constructor(
     private val _pendingAction = MutableStateFlow<AIAction?>(null)
     private val _isConfirmingAction = MutableStateFlow(false)
     private val _actionResult = MutableStateFlow<String?>(null)
+    private val _snackbarMessage = MutableStateFlow<String?>(null)
+    private val onDeviceLlmActive = aiPrivacyStatus.onDeviceLlmActive
 
     val uiState: StateFlow<ChatUiState> = combine(
-        aiChatMessageDao.getAll(),
-        _inputText,
-        _streamedText,
-        _isStreaming,
-        combine(_pendingAction, _isConfirmingAction, _actionResult) { a, c, r -> Triple(a, c, r) }
-    ) { entities, input, streamed, streaming, (action, confirming, result) ->
+        combine(
+            aiChatMessageDao.getAll(),
+            _inputText,
+            _streamedText,
+            _isStreaming
+        ) { entities, input, streamed, streaming ->
+            ChatCore(entities, input, streamed, streaming)
+        },
+        cloudAssistGate.isCloudActive,
+        combine(_pendingAction, _isConfirmingAction, _actionResult, _snackbarMessage) { a, c, r, snack ->
+            Tuple4(a, c, r, snack)
+        }
+    ) { core, cloudActive, extras ->
         ChatUiState(
-            messages = entities.map { ChatMessage(it.content, it.isFromUser, it.timestamp) },
-            inputText = input,
-            streamedText = streamed,
-            isStreaming = streaming,
-            isAiAvailable = aiRepository.isAvailable(),
-            pendingAction = action,
-            isConfirmingAction = confirming,
-            actionResult = result
+            messages = core.entities.map { ChatMessage(it.content, it.isFromUser, it.timestamp) },
+            inputText = core.input,
+            streamedText = core.streamed,
+            isStreaming = core.streaming,
+            isAiAvailable = cloudActive && aiRepository.isAvailable(),
+            showCloudNotice = cloudActive && aiRepository.isAvailable(),
+            pendingAction = extras.a,
+            isConfirmingAction = extras.b,
+            actionResult = extras.c,
+            snackbarMessage = extras.d,
+            onDeviceLlmActive = onDeviceLlmActive
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), ChatUiState())
+
+    private data class ChatCore(
+        val entities: List<com.reps.app.core.data.entity.AIChatMessageEntity>,
+        val input: String,
+        val streamed: String,
+        val streaming: Boolean
+    )
+
+    private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 
     fun onInputChange(text: String) { _inputText.update { text } }
 
@@ -125,7 +153,7 @@ class AICoachViewModel @Inject constructor(
                         "AI quota exceeded. Please wait a moment and try again."
                     e.message?.contains("rate", ignoreCase = true) == true ->
                         "Too many requests. Please wait a moment and try again."
-                    else -> "Something went wrong: ${e::class.simpleName}"
+                    else -> "Something went wrong. Try sending again."
                 }
                 withContext(ioDispatcher) {
                     aiChatMessageDao.insert(AIChatMessageEntity(content = errorMsg, isFromUser = false))
@@ -165,11 +193,16 @@ class AICoachViewModel @Inject constructor(
             }
             _pendingAction.value = null
             _isConfirmingAction.value = false
+            _snackbarMessage.value = result
             _actionResult.value = result
             withContext(ioDispatcher) {
                 aiChatMessageDao.insert(AIChatMessageEntity(content = "✓ $result", isFromUser = false))
             }
         }
+    }
+
+    fun onSnackbarShown() {
+        _snackbarMessage.value = null
     }
 
     fun clearChat() {

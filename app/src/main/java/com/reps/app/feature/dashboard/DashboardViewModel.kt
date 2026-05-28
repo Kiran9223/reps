@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -49,10 +50,14 @@ data class DashboardUiState(
     val weekStats: WeekStats = WeekStats(),
     val activeSheet: MealSlot? = null,
     val goalProgress: GoalProgress? = null,
+    val isProfileComplete: Boolean = true,
     val dailyInsight: String? = null,
     val isFetchingInsight: Boolean = false,
+    val insightFailed: Boolean = false,
+    val isRefreshingAll: Boolean = false,
     val mealSuggestion: AiMealSuggestion? = null,
     val isFetchingSuggestion: Boolean = false,
+    val suggestionFailed: Boolean = false,
     val pendingDeleteEntryId: Long? = null,
     val editingEntry: LoggedFood? = null
 )
@@ -74,6 +79,22 @@ class DashboardViewModel @Inject constructor(
     private val _mealSuggestion = MutableStateFlow<AiMealSuggestion?>(null)
     private val _isFetchingSuggestion = MutableStateFlow(false)
     private val _isFetchingInsight = MutableStateFlow(false)
+    private val _insightFailed = MutableStateFlow(false)
+    private val _isRefreshingAll = MutableStateFlow(false)
+    private val _refreshTick = MutableStateFlow(0)
+    private var autoInsightRequestedForDate: String? = null
+
+    suspend fun hasProteinCelebrationToday(): Boolean {
+        val today = LocalDate.now().toString()
+        return appSettingsDataStore.proteinCelebrationDate.first() == today
+    }
+
+    fun markProteinCelebrated() {
+        viewModelScope.launch {
+            appSettingsDataStore.setProteinCelebrationDate(LocalDate.now().toString())
+        }
+    }
+    private val _suggestionFailed = MutableStateFlow(false)
     private val _pendingDeleteEntryId = MutableStateFlow<Long?>(null)
     private val _editingEntry = MutableStateFlow<LoggedFood?>(null)
 
@@ -99,8 +120,20 @@ class DashboardViewModel @Inject constructor(
         .flatMapLatest { date -> appSettingsDataStore.getWaterMl(date.toString()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), 0)
 
-    private val weekHistory: StateFlow<List<DayLog>> = mealLogRepository.getLogHistory(7)
+    private val weekHistory: StateFlow<List<DayLog>> = combine(
+        mealLogRepository.getLogHistory(7),
+        _refreshTick
+    ) { history, _ -> history }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), emptyList())
+
+    private val isProfileComplete: StateFlow<Boolean> = combine(
+        userPrefs.weightKg,
+        userPrefs.targetWeightKg,
+        userPrefs.heightCm,
+        userPrefs.age
+    ) { weight, target, height, age ->
+        weight > 0 && target > 0 && height > 0 && age > 0
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), false)
 
     private val goalProgress: StateFlow<GoalProgress?> = combine(
         userPrefs.weightKg,
@@ -130,11 +163,27 @@ class DashboardViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), null)
 
     private data class DayBundle(val log: DayLog, val macros: DayMacros, val water: Int, val targets: MacroTargets)
-    private data class AiBundle(
+    private data class AiCore(
         val isFetchingInsight: Boolean,
         val insight: String?,
         val suggestion: AiMealSuggestion?,
         val isFetchingSuggestion: Boolean
+    )
+
+    private data class AiFlags(
+        val insightFailed: Boolean,
+        val suggestionFailed: Boolean,
+        val isRefreshingAll: Boolean
+    )
+
+    private data class AiBundle(
+        val isFetchingInsight: Boolean,
+        val insight: String?,
+        val suggestion: AiMealSuggestion?,
+        val isFetchingSuggestion: Boolean,
+        val insightFailed: Boolean,
+        val suggestionFailed: Boolean,
+        val isRefreshingAll: Boolean
     )
 
     val uiState: StateFlow<DashboardUiState> = combine(
@@ -144,12 +193,32 @@ class DashboardViewModel @Inject constructor(
         combine(_selectedDate, _selectedTab, _activeSheet) { date, tab, sheet ->
             Triple(date, tab, sheet)
         },
-        combine(weekHistory, goalProgress) { history, gp -> history to gp },
-        combine(_isFetchingInsight, dailyInsight, _mealSuggestion, _isFetchingSuggestion) { f, i, s, fs ->
-            AiBundle(f, i, s, fs)
+        combine(weekHistory, goalProgress, isProfileComplete) { history, gp, profileComplete ->
+            Triple(history, gp, profileComplete)
+        },
+        combine(
+            combine(
+                _isFetchingInsight,
+                dailyInsight,
+                _mealSuggestion,
+                _isFetchingSuggestion
+            ) { f, i, s, fs -> AiCore(f, i, s, fs) },
+            combine(_insightFailed, _suggestionFailed, _isRefreshingAll) { a, b, c ->
+                AiFlags(a, b, c)
+            }
+        ) { core, flags ->
+            AiBundle(
+                isFetchingInsight = core.isFetchingInsight,
+                insight = core.insight,
+                suggestion = core.suggestion,
+                isFetchingSuggestion = core.isFetchingSuggestion,
+                insightFailed = flags.insightFailed,
+                suggestionFailed = flags.suggestionFailed,
+                isRefreshingAll = flags.isRefreshingAll
+            )
         },
         combine(_pendingDeleteEntryId, _editingEntry) { pending, editing -> pending to editing }
-    ) { bundle, (date, tab, sheet), (history, gp), ai, (pending, editing) ->
+    ) { bundle, (date, tab, sheet), (history, gp, profileComplete), ai, (pending, editing) ->
         DashboardUiState(
             selectedDate = date,
             dayLog = bundle.log,
@@ -161,14 +230,22 @@ class DashboardViewModel @Inject constructor(
             weekStats = computeWeekStats(history, bundle.targets),
             activeSheet = sheet,
             goalProgress = gp,
+            isProfileComplete = profileComplete,
             dailyInsight = ai.insight,
             isFetchingInsight = ai.isFetchingInsight,
+            insightFailed = ai.insightFailed,
+            isRefreshingAll = ai.isRefreshingAll,
             mealSuggestion = ai.suggestion,
             isFetchingSuggestion = ai.isFetchingSuggestion,
+            suggestionFailed = ai.suggestionFailed,
             pendingDeleteEntryId = pending,
             editingEntry = editing
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), DashboardUiState())
+
+    fun setSelectedDate(date: LocalDate) {
+        _selectedDate.value = date
+    }
 
     fun onPreviousDay() { _selectedDate.value = _selectedDate.value.minusDays(1) }
 
@@ -211,8 +288,6 @@ class DashboardViewModel @Inject constructor(
 
     fun onSwipeToDelete(entryId: Long) {
         _pendingDeleteEntryId.value = entryId
-        _activeSheet.value = null
-        _mealSuggestion.value = null
     }
 
     fun undoDelete() {
@@ -228,16 +303,51 @@ class DashboardViewModel @Inject constructor(
     fun requestInsight() {
         if (_isFetchingInsight.value) return
         viewModelScope.launch {
-            _isFetchingInsight.value = true
-            val log = dayLog.value
-            val targets = macroTargets.value
-            val weightKg = userPrefs.weightKg.first()
-            val targetWeight = userPrefs.targetWeightKg.first()
-            val waterMlNow = appSettingsDataStore.getWaterMl(_selectedDate.value.toString()).first()
-            aiRepository.getDailyInsight(log, targets, weightKg, targetWeight, false, waterMlNow)
-                .onSuccess { appSettingsDataStore.saveDailyInsight(it) }
-            _isFetchingInsight.value = false
+            fetchInsight()
         }
+    }
+
+    /** Fetches today's insight once per calendar day when Dashboard opens (if none cached). */
+    fun tryAutoFetchInsightIfNeeded() {
+        val today = LocalDate.now()
+        if (_selectedDate.value != today) return
+        val dateKey = today.toString()
+        if (autoInsightRequestedForDate == dateKey) return
+        if (_isFetchingInsight.value) return
+
+        viewModelScope.launch {
+            val existing = appSettingsDataStore.dailyInsight.first()
+            if (existing != null) {
+                autoInsightRequestedForDate = dateKey
+                return@launch
+            }
+            autoInsightRequestedForDate = dateKey
+            fetchInsight()
+        }
+    }
+
+    fun onRefreshAll() {
+        if (_isRefreshingAll.value) return
+        viewModelScope.launch {
+            _isRefreshingAll.value = true
+            _refreshTick.update { it + 1 }
+            fetchInsight()
+            _isRefreshingAll.value = false
+        }
+    }
+
+    private suspend fun fetchInsight() {
+        _isFetchingInsight.value = true
+        _insightFailed.value = false
+        val log = mealLogRepository.getDayLog(_selectedDate.value.toString()).first()
+        val targets = macroTargets.value
+        val weightKg = userPrefs.weightKg.first()
+        val targetWeight = userPrefs.targetWeightKg.first()
+        val waterMlNow = appSettingsDataStore.getWaterMl(_selectedDate.value.toString()).first()
+        val result = aiRepository.getDailyInsight(log, targets, weightKg, targetWeight, false, waterMlNow)
+        result.onSuccess { appSettingsDataStore.saveDailyInsight(it) }
+        _insightFailed.value = result.isFailure
+        _isFetchingInsight.value = false
     }
 
     fun addSuggestedMealToLog() {
@@ -263,13 +373,16 @@ class DashboardViewModel @Inject constructor(
         if (_isFetchingSuggestion.value) return
         viewModelScope.launch {
             _isFetchingSuggestion.value = true
+            _suggestionFailed.value = false
+            _mealSuggestion.value = null
             val targets = macroTargets.value
             val log = dayLog.value
             val consumedProtein = log.slots.values.sumOf { it.totalProtein } - log.slotLog(slot).totalProtein
             val remainingProtein = (targets.proteinG - consumedProtein).coerceAtLeast(0.0)
             val foods = foodRepository.getRecentFoods().first().map { it.name }
-            aiRepository.getMealSuggestion(slot, remainingProtein, foods)
-                .onSuccess { _mealSuggestion.value = it }
+            val result = aiRepository.getMealSuggestion(slot, remainingProtein, foods)
+            result.onSuccess { _mealSuggestion.value = it }
+            _suggestionFailed.value = result.isFailure
             _isFetchingSuggestion.value = false
         }
     }

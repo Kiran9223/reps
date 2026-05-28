@@ -66,7 +66,7 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
-    suspend fun generateAndStartQuickWorkout(focus: WorkoutFocus, timeBudgetMinutes: Int): Long {
+    suspend fun generateAndStartQuickWorkout(focus: WorkoutFocus, timeBudgetMinutes: Int): Long? {
         _isGeneratingQuickWorkout.value = true
         return try {
             val shoulderSafe = uiState.value.isShoulderSafeOnly
@@ -74,19 +74,17 @@ class WorkoutViewModel @Inject constructor(
                 ExerciseFilter(shoulderSafeOnly = shoulderSafe)
             ).first()
             val focused = if (focus.muscleKeywords.isEmpty()) allExercises
-                          else allExercises.filter { ex ->
-                              focus.muscleKeywords.any { kw ->
-                                  ex.muscleGroups.any { mg -> mg.contains(kw, ignoreCase = true) }
-                              }
-                          }
-            val drafts = aiRepository.getQuickWorkoutExercises(focus, timeBudgetMinutes, focused)
-                .getOrDefault(emptyList())
-            val name = "${focus.displayName} · ${timeBudgetMinutes}min"
-            if (drafts.isEmpty()) {
-                workoutRepository.startWorkout(null)
-            } else {
-                workoutRepository.startQuickWorkout(name, drafts)
+            else allExercises.filter { ex ->
+                focus.muscleKeywords.any { kw ->
+                    ex.muscleGroups.any { mg -> mg.contains(kw, ignoreCase = true) }
+                }
             }
+            val drafts = aiRepository.getQuickWorkoutExercises(focus, timeBudgetMinutes, focused)
+                .getOrNull()
+                .orEmpty()
+            if (drafts.isEmpty()) return null
+            val name = "${focus.displayName} · ${timeBudgetMinutes}min"
+            workoutRepository.startQuickWorkout(name, drafts)
         } finally {
             _isGeneratingQuickWorkout.value = false
         }

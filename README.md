@@ -2,12 +2,13 @@
 
 > *Every rep starts on the plate.*
 
-A fully local, AI-powered Android fitness and nutrition tracking app. Reps helps you lose fat, preserve muscle, and hit protein goals using on-device Gemini Nano AI — no cloud required, no subscriptions, no data leaving your phone.
+A **local-first**, AI-powered Android fitness and nutrition tracker. Reps helps you lose fat, preserve muscle, and hit protein goals with your data stored on-device in Room and DataStore. Core logging works offline; optional on-device LLM (MediaPipe + Gemma) and optional cloud assist (Gemini API) power smarter features when you enable them.
 
 ---
 
 ## Table of Contents
 
+- [Privacy & Data](#privacy--data)
 - [Overview](#overview)
 - [Features](#features)
   - [Onboarding](#1-onboarding)
@@ -28,11 +29,67 @@ A fully local, AI-powered Android fitness and nutrition tracking app. Reps helps
 
 ---
 
+## Privacy & Data
+
+Reps is designed **local-first**: your meal logs, workouts, weight, measurements, grocery lists, macro targets, and profile preferences live on your phone. There is no Reps account and no Reps-owned backend.
+
+### Always on this device
+
+| Data | Storage |
+|---|---|
+| Meal & workout logs, templates, history | Room |
+| Profile, goals, dietary prefs | DataStore |
+| Food & exercise library (after seed/cache) | Room |
+| AI Coach chat history | Room (until you clear chat) |
+
+### On-device AI (optional)
+
+Push the Gemma model to the device (see [Build Setup](#on-device-ai-model-optional)). When loaded, these features use **MediaPipe LLM Inference** only — prompts and responses do not leave the phone:
+
+- Natural-language meal parsing  
+- Daily insights & meal suggestions  
+- Grocery item categorization  
+- Nutrition estimates (“Estimate with AI”)  
+- Shoulder-safe alternatives & quick workouts  
+
+If the model is not installed, the app uses **rule-based fallbacks** for some of these (template insights, keyword matching). Natural-language meal parsing requires the on-device model.
+
+### Cloud assist (optional, build-time)
+
+If you add `GEMINI_API_KEY` to `local.properties`, a **Hybrid** router sends specific tasks to **Google Gemini** (`gemini-2.5-flash`). Your data is only sent when you use those features:
+
+| Feature | What is sent to Google |
+|---|---|
+| **AI Coach** | Your profile summary, today’s macros, and the last 8 chat messages + your new message |
+| **Import Plan** | The plan text you paste when you tap Parse |
+| **Workout template / exercise detail AI** | Template name or exercise name + context from your local exercise list (for matching) |
+
+You can use Reps **without** a Gemini key: logging, planning, progress, and on-device AI (with model) still work; AI Coach and Import Plan parsing will not.
+
+### Optional network APIs (not generative AI)
+
+These fetch public food/exercise data once per query and **cache results in Room** for offline use:
+
+| API | Purpose |
+|---|---|
+| USDA FoodData Central | Generic food search |
+| Open Food Facts | Barcode lookup |
+| Wger | Exercise search / one-time seed |
+
+API keys for USDA and API Ninjas are optional; Wger and Open Food Facts do not require keys.
+
+### In the app
+
+Open **Settings → Privacy & data** to see whether on-device AI and cloud assist are active on your build.
+
+---
+
 ## Overview
 
 | Property | Value |
 |---|---|
 | Platform | Android |
+| Privacy model | Local-first; optional on-device LLM; optional Gemini cloud assist |
 | Min SDK | 31 (Android 12) |
 | Target SDK | 35 (Android 15) |
 | Language | Kotlin (100%) |
@@ -238,7 +295,7 @@ Persistent, multi-list grocery management with AI-powered automatic categorisati
 
 ### 8. AI Coach
 
-A full conversational fitness coach powered by the on-device LLM with Gemini cloud fallback.
+A full conversational fitness coach. **Requires cloud assist** (`GEMINI_API_KEY` at build time). Messages are sent to Google Gemini; see [Privacy & Data](#privacy--data).
 
 **What the AI knows about you (injected into every message):**
 - Your name, weight, target weight
@@ -463,7 +520,7 @@ USDA_API_KEY=your_usda_fooddata_key_here
 API_NINJAS_KEY=your_api_ninjas_key_here
 ```
 
-- **GEMINI_API_KEY** — Required for AI chat and plan import. Get a free key at [aistudio.google.com](https://aistudio.google.com).
+- **GEMINI_API_KEY** — Optional but required for **AI Coach** and **Import Plan** parsing. When set, those features send data to Google Gemini. Get a free key at [aistudio.google.com](https://aistudio.google.com). Leave unset for a fully local build (no cloud AI).
 - **USDA_API_KEY** — Optional. Used for generic food search (chicken, eggs, etc.). Get a free key at [fdc.nal.usda.gov](https://fdc.nal.usda.gov/api-key-signup.html).
 - **API_NINJAS_KEY** — Optional fallback for natural language food queries.
 

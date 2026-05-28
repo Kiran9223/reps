@@ -15,7 +15,7 @@ sealed class BottomNavItem(
     val labelResId: Int
 ) {
     object Dashboard : BottomNavItem(Screen.Dashboard, Icons.Filled.Home, R.string.nav_dashboard)
-    object Meals : BottomNavItem(Screen.MealLog, Icons.Filled.Restaurant, R.string.nav_meals)
+    object Diary : BottomNavItem(Screen.MealLog, Icons.Filled.Restaurant, R.string.nav_diary)
     object Workout : BottomNavItem(Screen.WorkoutLog, Icons.Filled.FitnessCenter, R.string.nav_workout)
     object AICoach : BottomNavItem(Screen.AICoach, Icons.Filled.Psychology, R.string.nav_ai_coach)
     object More : BottomNavItem(Screen.More, Icons.Filled.MoreHoriz, R.string.nav_more)
@@ -23,7 +23,7 @@ sealed class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem.Dashboard,
-    BottomNavItem.Meals,
+    BottomNavItem.Diary,
     BottomNavItem.Workout,
     BottomNavItem.AICoach,
     BottomNavItem.More

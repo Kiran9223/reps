@@ -46,8 +46,15 @@ fun RepsNavGraph(
         startDestination = Screen.Dashboard.route,
         modifier = Modifier.padding(innerPadding)
     ) {
-        composable(Screen.Dashboard.route) {
+        composable(
+            route = Screen.Dashboard.route,
+            arguments = listOf(
+                navArgument("focusDate") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val focusDate = backStackEntry.arguments?.getString("focusDate").orEmpty()
             DashboardScreen(
+                initialFocusDate = focusDate.takeIf { it.isNotBlank() },
                 onNavigateToFoodSearch = { date, slot ->
                     navController.navigate(Screen.FoodSearch.createRoute(date, slot))
                 },
@@ -57,11 +64,31 @@ fun RepsNavGraph(
                 onNavigateToNaturalLanguage = { date, slot ->
                     navController.navigate(Screen.NaturalLanguageEntry.createRoute(date, slot))
                 },
-                onNavigateToProgress = { navController.navigate(Screen.Progress.route) }
+                onNavigateToProgress = { navController.navigate(Screen.Progress.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
 
-        composable(Screen.MealLog.route) { MealLogScreen() }
+        composable(Screen.MealLog.route) {
+            MealLogScreen(
+                onNavigateToDashboard = { date ->
+                    navController.navigate(Screen.Dashboard.createRoute(date)) {
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToFoodSearch = { date, slot ->
+                    navController.navigate(Screen.FoodSearch.createRoute(date, slot))
+                },
+                onNavigateToBarcode = { date, slot ->
+                    navController.navigate(Screen.BarcodeScanner.createRoute(date, slot))
+                },
+                onNavigateToNaturalLanguage = { date, slot ->
+                    navController.navigate(Screen.NaturalLanguageEntry.createRoute(date, slot))
+                }
+            )
+        }
 
         composable(Screen.WorkoutLog.route) {
             WorkoutLogScreen(
@@ -170,6 +197,8 @@ fun RepsNavGraph(
                 onNavigateToProgress = { navController.navigate(Screen.Progress.route) },
                 onNavigateToMealPlan = { navController.navigate(Screen.MealPlan.route) },
                 onNavigateToGrocery = { navController.navigate(Screen.GroceryList.route) },
+                onNavigateToAiCoach = { navController.navigate(Screen.AICoach.route) },
+                onNavigateToImportPlan = { navController.navigate(Screen.ImportPlan.createRoute("WORKOUT")) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
@@ -302,7 +331,12 @@ fun RepsNavGraph(
                 navArgument("type") { type = NavType.StringType; defaultValue = "WORKOUT" }
             )
         ) {
-            ImportPlanScreen(onNavigateBack = { navController.popBackStack() })
+            ImportPlanScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onOpenPrivacySettings = {
+                    navController.navigate(Screen.Settings.route)
+                }
+            )
         }
 
         composable(
@@ -360,7 +394,11 @@ fun RepsNavGraph(
             SettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(Screen.AICoach.route) {
-            AICoachScreen()
+            AICoachScreen(
+                onOpenPrivacySettings = {
+                    navController.navigate(Screen.Settings.route)
+                }
+            )
         }
     }
 }

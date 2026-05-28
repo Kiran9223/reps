@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -38,18 +40,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
 import com.reps.app.ai.ImportPlanType
+import com.reps.app.ui.components.PrivacyNoticeBanner
 import com.reps.app.ui.theme.RepsTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportPlanScreen(
     onNavigateBack: () -> Unit,
+    onOpenPrivacySettings: () -> Unit = {},
     viewModel: ImportPlanViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,11 +74,17 @@ fun ImportPlanScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         when (state.phase) {
-            ImportPhase.IDLE, ImportPhase.ERROR -> InputSection(
+            ImportPhase.IDLE -> InputSection(
                 state = state,
                 onTypeChange = viewModel::onTypeChange,
                 onInputChange = viewModel::onInputChange,
                 onParse = viewModel::parsePlan,
+                onOpenPrivacySettings = onOpenPrivacySettings,
+                modifier = Modifier.padding(innerPadding)
+            )
+            ImportPhase.PARSE_ERROR -> ParseErrorSection(
+                onEditText = viewModel::retryInput,
+                onTryAgain = viewModel::parsePlan,
                 modifier = Modifier.padding(innerPadding)
             )
             ImportPhase.PARSING -> LoadingSection(
@@ -82,12 +93,18 @@ fun ImportPlanScreen(
             )
             ImportPhase.REVIEW -> ReviewSection(
                 state = state,
+                canConfirm = viewModel.canConfirmImport(),
                 onWorkoutNameChange = viewModel::updateWorkoutPlanName,
                 onRemoveWorkoutDay = viewModel::removeWorkoutDay,
                 onRemoveExercise = viewModel::removeExercise,
+                onExerciseNameChange = viewModel::updateExerciseName,
+                onExerciseSetsChange = viewModel::updateExerciseSets,
+                onExerciseRepsChange = viewModel::updateExerciseReps,
                 onMealNameChange = viewModel::updateMealPlanName,
                 onRemoveMealDay = viewModel::removeMealDay,
                 onRemoveMealFood = viewModel::removeMealFood,
+                onFoodNameChange = viewModel::updateFoodName,
+                onFoodQuantityChange = viewModel::updateFoodQuantity,
                 onConfirm = viewModel::confirmImport,
                 onBack = viewModel::retryInput,
                 modifier = Modifier.padding(innerPadding)
@@ -96,11 +113,59 @@ fun ImportPlanScreen(
                 message = stringResource(R.string.import_plan_saving),
                 modifier = Modifier.padding(innerPadding)
             )
-            ImportPhase.DONE -> DoneSection(
+            ImportPhase.SUCCESS -> OutcomeSection(
+                title = stringResource(R.string.import_outcome_success_title),
                 message = state.statusMessage.orEmpty(),
-                onDone = onNavigateBack,
+                primaryLabel = stringResource(R.string.import_plan_done_btn),
+                onPrimary = onNavigateBack,
                 modifier = Modifier.padding(innerPadding)
             )
+            ImportPhase.PARTIAL -> OutcomeSection(
+                title = stringResource(R.string.import_outcome_partial_title),
+                message = state.statusMessage.orEmpty(),
+                primaryLabel = stringResource(R.string.import_back_to_review),
+                secondaryLabel = stringResource(R.string.import_plan_done_btn),
+                onPrimary = viewModel::backToReview,
+                onSecondary = onNavigateBack,
+                modifier = Modifier.padding(innerPadding)
+            )
+            ImportPhase.FAILURE -> OutcomeSection(
+                title = stringResource(R.string.import_outcome_failure_title),
+                message = state.statusMessage ?: stringResource(R.string.import_outcome_failure_body),
+                primaryLabel = stringResource(R.string.import_try_again),
+                secondaryLabel = stringResource(R.string.import_back_to_review),
+                onPrimary = viewModel::confirmImport,
+                onSecondary = viewModel::backToReview,
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ParseErrorSection(
+    onEditText: () -> Unit,
+    onTryAgain: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                stringResource(R.string.import_parse_error_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                stringResource(R.string.import_parse_error_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onTryAgain, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.import_try_again))
+            }
+            TextButton(onClick = onEditText, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.import_edit_text))
+            }
         }
     }
 }
@@ -111,6 +176,7 @@ private fun InputSection(
     onTypeChange: (ImportPlanType) -> Unit,
     onInputChange: (String) -> Unit,
     onParse: () -> Unit,
+    onOpenPrivacySettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -132,6 +198,17 @@ private fun InputSection(
             )
         }
 
+        if (state.cloudAssistActive) {
+            PrivacyNoticeBanner(text = stringResource(R.string.import_plan_cloud_notice))
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PrivacyNoticeBanner(text = stringResource(R.string.import_plan_cloud_required))
+                TextButton(onClick = onOpenPrivacySettings) {
+                    Text(stringResource(R.string.import_plan_open_settings))
+                }
+            }
+        }
+
         OutlinedTextField(
             value = state.inputText,
             onValueChange = onInputChange,
@@ -151,17 +228,9 @@ private fun InputSection(
             label = { Text(stringResource(R.string.import_plan_input_label)) }
         )
 
-        if (state.phase == ImportPhase.ERROR) {
-            Text(
-                text = state.statusMessage.orEmpty(),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
         Button(
             onClick = onParse,
-            enabled = state.inputText.isNotBlank(),
+            enabled = state.inputText.isNotBlank() && state.cloudAssistActive,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(stringResource(R.string.import_plan_parse_btn))
@@ -182,12 +251,18 @@ private fun LoadingSection(message: String, modifier: Modifier = Modifier) {
 @Composable
 private fun ReviewSection(
     state: ImportPlanUiState,
+    canConfirm: Boolean,
     onWorkoutNameChange: (String) -> Unit,
     onRemoveWorkoutDay: (Int) -> Unit,
     onRemoveExercise: (Int, Int) -> Unit,
+    onExerciseNameChange: (Int, Int, String) -> Unit,
+    onExerciseSetsChange: (Int, Int, Int) -> Unit,
+    onExerciseRepsChange: (Int, Int, String) -> Unit,
     onMealNameChange: (String) -> Unit,
     onRemoveMealDay: (Int) -> Unit,
     onRemoveMealFood: (Int, Int, Int) -> Unit,
+    onFoodNameChange: (Int, Int, Int, String) -> Unit,
+    onFoodQuantityChange: (Int, Int, Int, Double) -> Unit,
     onConfirm: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -219,7 +294,10 @@ private fun ReviewSection(
                 WorkoutDayCard(
                     day = day,
                     onRemoveDay = { onRemoveWorkoutDay(dayIndex) },
-                    onRemoveExercise = { exIndex -> onRemoveExercise(dayIndex, exIndex) }
+                    onRemoveExercise = { exIndex -> onRemoveExercise(dayIndex, exIndex) },
+                    onExerciseNameChange = { exIndex, name -> onExerciseNameChange(dayIndex, exIndex, name) },
+                    onExerciseSetsChange = { exIndex, sets -> onExerciseSetsChange(dayIndex, exIndex, sets) },
+                    onExerciseRepsChange = { exIndex, reps -> onExerciseRepsChange(dayIndex, exIndex, reps) }
                 )
             }
         }
@@ -238,14 +316,31 @@ private fun ReviewSection(
                 MealDayCard(
                     day = day,
                     onRemoveDay = { onRemoveMealDay(dayIndex) },
-                    onRemoveFood = { slotIndex, foodIndex -> onRemoveMealFood(dayIndex, slotIndex, foodIndex) }
+                    onRemoveFood = { slotIndex, foodIndex -> onRemoveMealFood(dayIndex, slotIndex, foodIndex) },
+                    onFoodNameChange = { slotIndex, foodIndex, name ->
+                        onFoodNameChange(dayIndex, slotIndex, foodIndex, name)
+                    },
+                    onFoodQuantityChange = { slotIndex, foodIndex, qty ->
+                        onFoodQuantityChange(dayIndex, slotIndex, foodIndex, qty)
+                    }
                 )
             }
         }
 
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) {
+                if (!canConfirm) {
+                    Text(
+                        stringResource(R.string.import_confirm_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    onClick = onConfirm,
+                    enabled = canConfirm,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(stringResource(R.string.import_plan_confirm_btn))
                 }
                 TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
@@ -257,10 +352,43 @@ private fun ReviewSection(
 }
 
 @Composable
+private fun OutcomeSection(
+    title: String,
+    message: String,
+    primaryLabel: String,
+    onPrimary: () -> Unit,
+    modifier: Modifier = Modifier,
+    secondaryLabel: String? = null,
+    onSecondary: (() -> Unit)? = null
+) {
+    Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onPrimary, modifier = Modifier.fillMaxWidth()) {
+                Text(primaryLabel)
+            }
+            if (secondaryLabel != null && onSecondary != null) {
+                TextButton(onClick = onSecondary, modifier = Modifier.fillMaxWidth()) {
+                    Text(secondaryLabel)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun WorkoutDayCard(
     day: ReviewWorkoutDay,
     onRemoveDay: () -> Unit,
-    onRemoveExercise: (Int) -> Unit
+    onRemoveExercise: (Int) -> Unit,
+    onExerciseNameChange: (Int, String) -> Unit,
+    onExerciseSetsChange: (Int, Int) -> Unit,
+    onExerciseRepsChange: (Int, String) -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -288,28 +416,46 @@ private fun WorkoutDayCard(
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             day.exercises.forEachIndexed { index, exercise ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 2.dp)
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = exercise.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "${exercise.sets} × ${exercise.reps}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    IconButton(onClick = { onRemoveExercise(index) }, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = stringResource(R.string.import_plan_remove),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = exercise.name,
+                            onValueChange = { onExerciseNameChange(index, it) },
+                            label = { Text(stringResource(R.string.import_edit_exercise_name)) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        IconButton(onClick = { onRemoveExercise(index) }, modifier = Modifier.size(40.dp)) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.import_plan_remove),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = exercise.sets.toString(),
+                            onValueChange = { text ->
+                                text.toIntOrNull()?.let { onExerciseSetsChange(index, it) }
+                            },
+                            label = { Text(stringResource(R.string.import_edit_sets)) },
+                            modifier = Modifier.width(88.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        OutlinedTextField(
+                            value = exercise.reps,
+                            onValueChange = { onExerciseRepsChange(index, it) },
+                            label = { Text(stringResource(R.string.import_edit_reps)) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
                         )
                     }
                 }
@@ -322,7 +468,9 @@ private fun WorkoutDayCard(
 private fun MealDayCard(
     day: ReviewMealDay,
     onRemoveDay: () -> Unit,
-    onRemoveFood: (slotIndex: Int, foodIndex: Int) -> Unit
+    onRemoveFood: (slotIndex: Int, foodIndex: Int) -> Unit,
+    onFoodNameChange: (slotIndex: Int, foodIndex: Int, String) -> Unit,
+    onFoodQuantityChange: (slotIndex: Int, foodIndex: Int, Double) -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -358,47 +506,50 @@ private fun MealDayCard(
                 )
                 slot.foods.forEachIndexed { foodIndex, food ->
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Top,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 2.dp)
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = food.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
+                        OutlinedTextField(
+                            value = food.name,
+                            onValueChange = { onFoodNameChange(slotIndex, foodIndex, it) },
+                            label = { Text(stringResource(R.string.import_edit_food_name)) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = food.quantity.let {
+                                if (it == it.toLong().toDouble()) it.toLong().toString() else "%.1f".format(it)
+                            },
+                            onValueChange = { text ->
+                                text.toDoubleOrNull()?.let { onFoodQuantityChange(slotIndex, foodIndex, it) }
+                            },
+                            label = { Text(stringResource(R.string.import_edit_quantity)) },
+                            modifier = Modifier.width(72.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
                         Text(
-                            text = "${food.quantity.let { if (it == it.toLong().toDouble()) it.toLong().toString() else "%.1f".format(it) }} ${food.unit}",
+                            text = food.unit,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 16.dp)
                         )
-                        IconButton(onClick = { onRemoveFood(slotIndex, foodIndex) }, modifier = Modifier.size(32.dp)) {
+                        IconButton(
+                            onClick = { onRemoveFood(slotIndex, foodIndex) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = stringResource(R.string.import_plan_remove),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DoneSection(message: String, onDone: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Button(onClick = onDone) {
-                Text(stringResource(R.string.import_plan_done_btn))
             }
         }
     }

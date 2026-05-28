@@ -55,8 +55,8 @@ class RuleBasedAIRepository : AIRepository {
         userContext: String
     ): Flow<String> = flow {
         emit(
-            "AI coach is not available on this device. " +
-            "Make sure the model file is at /data/local/tmp/llm/model.task."
+            "AI Coach requires cloud assist. Add GEMINI_API_KEY to local.properties, rebuild the app, " +
+                "then open Settings → Privacy & data for details."
         )
     }
 

@@ -3,10 +3,10 @@ package com.reps.app.feature.meal
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reps.app.core.domain.model.DayLog
+import com.reps.app.core.domain.model.LoggedFood
 import com.reps.app.core.domain.repository.MealLogRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,16 +33,14 @@ class MealLogViewModel @Inject constructor(
     private val _pendingDeleteId = MutableStateFlow<Long?>(null)
     val pendingDeleteId: StateFlow<Long?> = _pendingDeleteId.asStateFlow()
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _editingEntry = MutableStateFlow<LoggedFood?>(null)
+    val editingEntry: StateFlow<LoggedFood?> = _editingEntry.asStateFlow()
 
-    fun onRefresh() {
-        viewModelScope.launch {
-            _isRefreshing.value = true
-            delay(400) // data is already live via Room; brief spinner for feedback
-            _isRefreshing.value = false
-        }
-    }
+    private val _showAddFoodSheet = MutableStateFlow(false)
+    val showAddFoodSheet: StateFlow<Boolean> = _showAddFoodSheet.asStateFlow()
+
+    fun openAddFoodSheet() { _showAddFoodSheet.value = true }
+    fun closeAddFoodSheet() { _showAddFoodSheet.value = false }
 
     fun onPreviousDay() { _selectedDate.value = _selectedDate.value.minusDays(1) }
 
@@ -64,6 +62,21 @@ class MealLogViewModel @Inject constructor(
         val id = _pendingDeleteId.value ?: return
         _pendingDeleteId.value = null
         viewModelScope.launch { mealLogRepository.removeFoodFromLog(id) }
+    }
+
+    fun openEditEntry(entry: LoggedFood) {
+        _editingEntry.value = entry
+    }
+
+    fun closeEditEntry() {
+        _editingEntry.value = null
+    }
+
+    fun saveEditedServings(entryId: Long, servings: Double) {
+        viewModelScope.launch {
+            mealLogRepository.updateServings(entryId, servings)
+            closeEditEntry()
+        }
     }
 
     fun getSelectedDateStr(): String = _selectedDate.value.toString()

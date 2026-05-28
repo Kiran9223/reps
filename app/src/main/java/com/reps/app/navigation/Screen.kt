@@ -2,7 +2,9 @@ package com.reps.app.navigation
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
-    object Dashboard : Screen("dashboard")
+    object Dashboard : Screen("dashboard?focusDate={focusDate}") {
+        fun createRoute(focusDate: String? = null) = "dashboard?focusDate=${focusDate.orEmpty()}"
+    }
     object MealLog : Screen("meal_log")
 
     object FoodSearch : Screen("food_search?date={date}&slot={slot}&planDay={planDay}") {

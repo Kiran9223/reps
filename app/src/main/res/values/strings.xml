@@ -9,7 +9,7 @@
 
     <!-- Step 1: Welcome -->
     <string name="onboarding_tagline">Every rep starts on the plate.</string>
-    <string name="onboarding_subtitle">AI-powered fitness &amp; nutrition. 100%% on-device. No subscriptions.</string>
+    <string name="onboarding_subtitle">Local-first fitness &amp; nutrition. Your logs stay on your phone; optional cloud AI for chat and plan import.</string>
     <string name="onboarding_cta">Get Started</string>
 
     <!-- Step 2: Personal -->
@@ -72,7 +72,8 @@
 
     <!-- Bottom navigation -->
     <string name="nav_dashboard">Dashboard</string>
-    <string name="nav_meals">Meals</string>
+    <string name="nav_diary">Diary</string>
+    <string name="nav_meals">Diary</string>
     <string name="nav_workout">Workout</string>
     <string name="nav_progress">Progress</string>
     <string name="nav_ai_coach">AI Coach</string>
@@ -80,7 +81,8 @@
 
     <!-- Screen titles -->
     <string name="screen_dashboard">Dashboard</string>
-    <string name="screen_meal_log">Meal Log</string>
+    <string name="screen_diary">Diary</string>
+    <string name="screen_meal_log">Diary</string>
     <string name="screen_food_search">Food Search</string>
     <string name="screen_workout">Workout</string>
     <string name="screen_progress">Progress</string>
@@ -91,9 +93,46 @@
 
     <!-- Placeholders -->
     <string name="coming_soon">Coming in a future phase</string>
-    <string name="more_ai_coach">AI Coach</string>
     <string name="more_grocery">Grocery List</string>
     <string name="more_settings">Settings</string>
+    <string name="more_ai_coach">AI Coach</string>
+    <string name="more_import_plan">Import plan</string>
+    <string name="more_diary_dashboard_title">Diary vs Dashboard</string>
+    <string name="more_diary_dashboard_body">Dashboard is your command center for today — macros, water, meal slots, and insights. Diary is the same food log by day, optimized for reviewing and editing what you already logged.</string>
+    <string name="cd_navigate_to">Open %1$s</string>
+    <string name="workout_templates_empty_history_title">No templates yet</string>
+    <string name="workout_templates_empty_history_body">You have workout history but no saved templates. Create one to restart your favorite sessions quickly.</string>
+    <string name="workout_templates_create_first">Create first template</string>
+    <string name="workout_shoulder_safe_quick_start_hint">Quick Start and templates respect this filter when it is on.</string>
+    <string name="import_edit_exercise_name">Exercise name</string>
+    <string name="import_edit_sets">Sets</string>
+    <string name="import_edit_reps">Reps</string>
+    <string name="import_edit_food_name">Food name</string>
+    <string name="import_edit_quantity">Qty</string>
+    <string name="cd_macro_rings">Macros: protein %1$d of %2$d grams, carbs %3$d of %4$d grams, fat %5$d of %6$d grams</string>
+    <string name="cd_search_food">Search food</string>
+    <string name="cd_scan_barcode">Scan barcode</string>
+    <string name="cd_describe_meal">Describe meal with AI</string>
+    <string name="cd_refresh_insight">Refresh daily insight</string>
+    <string name="cd_suggest_meal">Suggest meal with AI</string>
+    <string name="cd_add_item">Add item</string>
+    <string name="cd_share_grocery">Share grocery list</string>
+    <string name="settings_section_ai">AI &amp; reminders</string>
+    <string name="settings_cloud_assist_toggle">Use cloud assist</string>
+    <string name="settings_cloud_assist_toggle_desc">When on, AI Coach, Import Plan, and some estimates use Gemini. Off keeps those cloud-only; on-device features still work when the model is installed.</string>
+    <string name="settings_protein_reminders">Protein reminders</string>
+    <string name="settings_protein_reminders_desc">Daily notification around 5 PM if you are below 85% of your protein goal.</string>
+    <string name="settings_model_status_title">On-device model</string>
+    <string name="settings_model_status_found">Model file detected at the expected path.</string>
+    <string name="settings_model_status_missing">Model not found. Use adb or your device file manager to place model.task (see setup steps below).</string>
+    <string name="settings_model_refresh">Check again</string>
+    <string name="settings_privacy_cloud_user_off">Cloud assist: off (disabled in Settings) — AI Coach and Import Plan need cloud when a key is configured</string>
+    <string name="protein_goal_celebration_title">Protein goal hit!</string>
+    <string name="protein_goal_celebration_body">You reached today\'s protein target. Nice work staying on track.</string>
+    <string name="protein_reminder_channel_name">Protein reminders</string>
+    <string name="protein_reminder_channel_desc">Nudges when you are behind on daily protein</string>
+    <string name="protein_reminder_title">Protein check-in</string>
+    <string name="protein_reminder_body">About %1$d g protein left for today. Log a meal to stay on track.</string>
 
     <!-- Food Search -->
     <string name="food_search_hint">Search foods…</string>
@@ -185,10 +224,31 @@
 
     <!-- Dashboard insight -->
     <string name="dashboard_insight_title">Daily Insight</string>
-    <string name="dashboard_insight_placeholder">Log your meals to unlock AI insights in Phase 7.</string>
+    <string name="dashboard_insight_placeholder">Log meals for a personalized daily insight. We refresh once when you open today, or tap below anytime.</string>
+    <string name="dashboard_insight_get">Get today\'s insight</string>
+    <string name="ai_estimate_food_error">Couldn\'t estimate nutrition. Enter values manually or try again.</string>
+    <string name="ai_estimate_exercise_error">Couldn\'t estimate exercise details. Fill them in manually or try again.</string>
+    <string name="custom_exercise_save_error">Couldn\'t save this exercise. Try again.</string>
+    <string name="ai_generate_workout_error">Couldn\'t generate a workout. Add exercises manually or try again.</string>
+    <string name="ai_grocery_categorize_error">Couldn\'t auto-sort that item. Try again or add it manually from the list below.</string>
+    <string name="ai_shoulder_alternatives_error">Couldn\'t load shoulder-safe alternatives. Try again or continue with care.</string>
+    <string name="profile_error_name">Enter your name</string>
+    <string name="profile_error_age">Enter a valid age</string>
+    <string name="profile_error_weight">Enter a valid current weight</string>
+    <string name="profile_error_target_weight">Enter a valid target weight</string>
+    <string name="profile_error_height">Enter a valid height</string>
+    <string name="settings_unsaved_title">Discard changes?</string>
+    <string name="settings_unsaved_message">You have unsaved profile edits.</string>
+    <string name="settings_discard">Discard</string>
+    <string name="settings_keep_editing">Keep editing</string>
+    <string name="onboarding_complete_error">Couldn\'t save your profile. Check storage and try again.</string>
+    <string name="onboarding_try_again">Try again</string>
 
     <!-- Dashboard slot cards -->
-    <string name="dashboard_slot_empty">Tap to log</string>
+    <string name="dashboard_slot_empty">Tap to add food</string>
+    <string name="dashboard_progress_tab_subtitle">Weigh-ins and charts live in full Progress.</string>
+    <string name="dashboard_slot_add_a11y">Add food to %1$s</string>
+    <string name="dashboard_calories_remaining">%1$d kcal left</string>
     <string name="dashboard_slot_kcal">%1$d kcal</string>
 
     <!-- Dashboard slot bottom sheet -->
@@ -212,6 +272,7 @@
     <string name="progress_streak">Current Streak</string>
     <string name="progress_streak_value">%1$d days</string>
     <string name="progress_no_data">Log meals to see your weekly progress</string>
+    <string name="progress_no_data_cta">Log food on Dashboard</string>
 
     <!-- Food search with slot context -->
     <string name="food_search_adding_to">Adding food to %1$s</string>
@@ -230,7 +291,53 @@
 
     <!-- Meal Log screen -->
     <string name="meal_log_no_entries">No meals logged</string>
+    <string name="meal_log_slot_calories">%1$d kcal</string>
     <string name="meal_log_slot_header">%1$s · %2$d kcal</string>
+    <string name="diary_log_on_dashboard">Log food on Dashboard</string>
+    <string name="diary_log_subtitle">Search, barcode, or describe your meal</string>
+    <string name="diary_add_food">Add food</string>
+    <string name="diary_choose_meal">Choose a meal</string>
+    <string name="diary_back_to_meals">Back to meals</string>
+    <string name="diary_open_dashboard">More options on Dashboard</string>
+    <string name="goal_profile_incomplete_title">Complete your profile</string>
+    <string name="goal_profile_incomplete_body">Add weight, height, and goals in Settings to see goal progress and accurate macros.</string>
+    <string name="goal_profile_incomplete_cta">Open Settings</string>
+    <string name="settings_ai_setup_title">AI setup (optional)</string>
+    <string name="settings_ai_setup_on_device">On-device model: push model.task to /data/local/tmp/llm/ on your phone (adb or device files). Required for meal parsing, insights, and estimates without cloud.</string>
+    <string name="settings_ai_setup_cloud">Cloud assist: add GEMINI_API_KEY to local.properties, rebuild, for AI Coach and Import Plan.</string>
+    <string name="diary_empty_day">No meals logged this day</string>
+    <string name="diary_empty_hint">Use Dashboard to search, scan, or log with AI.</string>
+    <string name="edit_servings_invalid">Enter a number greater than 0</string>
+    <string name="ai_error_generic">Something went wrong. Try again.</string>
+    <string name="ai_error_retry">Try again</string>
+    <string name="ai_error_network">Couldn\'t reach AI. Check your connection and try again.</string>
+    <string name="ai_error_quota">AI quota exceeded. Wait a moment and try again.</string>
+    <string name="ai_error_rate_limit">Too many requests. Wait a moment and try again.</string>
+    <string name="ai_insight_error">Couldn\'t generate insight.</string>
+    <string name="ai_suggestion_error">Couldn\'t get a meal suggestion.</string>
+    <string name="ai_parse_error">Couldn\'t parse that description.</string>
+    <string name="ai_quick_workout_error">Couldn\'t build workout. Try again or start an empty session.</string>
+    <string name="dashboard_refresh_all">Refreshing…</string>
+    <string name="progress_open_full">Open full Progress</string>
+    <string name="ai_coach_unavailable_title">AI Coach needs cloud assist</string>
+    <string name="ai_coach_open_privacy">Open Privacy &amp; data</string>
+    <string name="ai_coach_action_dismiss">Dismiss</string>
+    <string name="ai_coach_action_confirm">Confirm</string>
+    <string name="ai_coach_action_log_meal">Log to %1$s</string>
+    <string name="ai_coach_action_update_goal">Update goal</string>
+    <string name="ai_coach_action_create_workout">Create workout plan</string>
+    <string name="ai_coach_action_create_meal">Create meal plan</string>
+    <string name="import_plan_open_settings">Privacy &amp; data in Settings</string>
+    <string name="import_parse_error_title">Couldn\'t parse this plan</string>
+    <string name="import_parse_error_body">The text might be too messy or the connection failed.</string>
+    <string name="import_edit_text">Edit text</string>
+    <string name="import_outcome_success_title">Import complete</string>
+    <string name="import_outcome_partial_title">Nothing was saved</string>
+    <string name="import_outcome_failure_title">Import failed</string>
+    <string name="import_outcome_failure_body">We couldn\'t save to your library. Your review is still here.</string>
+    <string name="import_confirm_empty">Add at least one item to import</string>
+    <string name="import_back_to_review">Back to review</string>
+    <string name="import_try_again">Try again</string>
     <string name="meal_log_add_food">Add Food</string>
 
     <!-- More screen items -->
@@ -456,7 +563,9 @@
     <string name="ai_coach_clear">Clear Chat</string>
     <string name="ai_coach_clear_confirm">All chat history will be deleted. This cannot be undone.</string>
     <string name="ai_coach_welcome">Hi! I\'m Reps, your AI fitness and nutrition coach. Ask me anything about your workouts, meals, or goals.</string>
-    <string name="ai_coach_unavailable">AI Coach is not available on this device. Make sure the Gemma model is installed.</string>
+    <string name="ai_coach_unavailable">AI Coach chat requires cloud assist (Gemini). Add GEMINI_API_KEY to local.properties and rebuild. Meal insights, parsing, and other features may still work on-device — see Settings → Privacy &amp; data.</string>
+    <string name="ai_coach_unavailable_on_device_ok">Your on-device model is active. Only AI Coach chat needs cloud assist; insights, meal parsing, and estimates can still use the phone.</string>
+    <string name="ai_coach_cloud_notice">Messages in this chat are sent to Google Gemini to generate replies. Your profile summary and recent chat history are included. Nothing is sent when you only use meal logging, workouts, or other on-device AI features.</string>
 
     <!-- Phase 7: Dashboard AI -->
     <string name="dashboard_refresh_insight">Refresh insight</string>
@@ -481,6 +590,25 @@
     <string name="settings_section_preferences">Dietary Preferences</string>
     <string name="settings_save">Save Changes</string>
     <string name="settings_saved">Profile updated!</string>
+    <string name="settings_save_failed">Couldn\'t save profile. Try again.</string>
+    <string name="settings_section_privacy">Privacy &amp; data</string>
+    <string name="settings_privacy_summary">Reps is local-first: meals, workouts, weight, and preferences are stored only on this device in Room and DataStore.</string>
+    <string name="settings_privacy_on_device_active">On-device AI: active (Gemma via MediaPipe)</string>
+    <string name="settings_privacy_on_device_inactive">On-device AI: not loaded — using rule-based fallbacks for insights and suggestions</string>
+    <string name="settings_privacy_cloud_on">Cloud assist: on — Gemini API key configured at build time</string>
+    <string name="settings_privacy_cloud_off">Cloud assist: off — add GEMINI_API_KEY to local.properties and rebuild for AI Coach and Import Plan</string>
+    <string name="settings_privacy_coach_clarification_title">AI Coach vs on-device AI</string>
+    <string name="settings_privacy_coach_clarification_body">AI Coach requires cloud assist. Other AI (daily insights, meal parsing, grocery sort, estimates) can run on-device when the model is installed, even if Coach is unavailable.</string>
+    <string name="settings_privacy_stays_local">Always on this phone</string>
+    <string name="settings_privacy_stays_local_body">Meal and workout logs, food/exercise library, weight and measurements, grocery lists, macro targets, and chat history (until you clear it).</string>
+    <string name="settings_privacy_on_device_tasks">On-device when the model is installed</string>
+    <string name="settings_privacy_on_device_tasks_body">Natural-language meal parsing, daily insights, meal suggestions, grocery categorization, nutrition estimates, shoulder-safe alternatives, and quick workouts.</string>
+    <string name="settings_privacy_cloud_tasks">Sent to Google Gemini when cloud assist is on</string>
+    <string name="settings_privacy_cloud_tasks_body">AI Coach chat (profile summary + last 8 messages), Import Plan parsing, workout template generation, and exercise detail enrichment (with on-device fallback).</string>
+    <string name="settings_privacy_optional_network">Optional network (not AI)</string>
+    <string name="settings_privacy_optional_network_body">Food search (USDA), barcode lookup (Open Food Facts), and exercise import (Wger) — results are cached in Room for offline use.</string>
+    <string name="import_plan_cloud_notice">Parsing sends the pasted plan text to Google Gemini. Nothing is uploaded until you tap Parse Plan.</string>
+    <string name="import_plan_cloud_required">Import Plan requires cloud assist. Add GEMINI_API_KEY to local.properties and rebuild.</string>
 
     <!-- Goal Progress card on Dashboard -->
     <string name="goal_progress_title">Weight Goal</string>

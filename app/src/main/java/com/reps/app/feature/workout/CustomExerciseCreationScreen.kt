@@ -47,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.ai.AiUserMessages
+import com.reps.app.ui.components.AiErrorInline
+import com.reps.app.ui.components.resolveAiErrorMessage
 import com.reps.app.ui.theme.RepsTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -181,13 +184,15 @@ fun CustomExerciseCreationScreen(
                 placeholder = stringResource(R.string.custom_exercise_restricted_placeholder)
             )
 
-            val estimationError = state.estimationError
-            if (estimationError != null) {
+            state.estimationError?.let { errorKey ->
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    text = estimationError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                AiErrorInline(
+                    message = resolveAiErrorMessage(errorKey),
+                    onRetry = if (errorKey == AiUserMessages.SAVE_EXERCISE_FAILED) {
+                        viewModel::saveExercise
+                    } else {
+                        viewModel::estimateDetails
+                    }
                 )
             }
 

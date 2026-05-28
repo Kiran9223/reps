@@ -3,6 +3,7 @@ package com.reps.app.feature.food
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reps.app.ai.AIRepository
+import com.reps.app.ai.AiUserMessages
 import com.reps.app.core.di.IoDispatcher
 import com.reps.app.core.domain.model.FoodItem
 import com.reps.app.core.domain.repository.FoodRepository
@@ -81,9 +82,9 @@ class CustomFoodCreationViewModel @Inject constructor(
                         )
                     }
                 },
-                onFailure = { e ->
+                onFailure = {
                     _formState.update {
-                        it.copy(isEstimating = false, errorMessage = "Estimation failed: ${e.message}")
+                        it.copy(isEstimating = false, errorMessage = AiUserMessages.ESTIMATE_FOOD_FAILED)
                     }
                 }
             )

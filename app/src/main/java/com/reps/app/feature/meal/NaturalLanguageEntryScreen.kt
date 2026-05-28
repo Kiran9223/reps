@@ -46,7 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reps.app.R
+import com.reps.app.ai.AiUserMessages
 import com.reps.app.core.domain.ParsedFoodEntry
+import com.reps.app.ui.components.AiErrorInline
 import com.reps.app.ui.theme.RepsTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -174,6 +176,17 @@ fun NaturalLanguageEntryScreen(
                         } else {
                             Text(stringResource(R.string.nl_log_it), color = MaterialTheme.colorScheme.onPrimary)
                         }
+                    }
+                }
+
+                state.error == AiUserMessages.PARSE_FAILED -> {
+                    AiErrorInline(
+                        message = stringResource(R.string.ai_parse_error),
+                        onRetry = viewModel::onParse
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = onNavigateToSearch, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.nl_search_manually))
                     }
                 }
 
