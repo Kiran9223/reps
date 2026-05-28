@@ -191,5 +191,57 @@ class RuleBasedAIRepository : AIRepository {
         )
     }
 
+    override suspend fun estimateWorkoutTemplate(
+        name: String,
+        availableExercises: List<Exercise>
+    ): Result<WorkoutTemplateSuggestion> {
+        val n = name.lowercase()
+        val muscleKeywords = when {
+            n.contains("push") || n.contains("chest") || n.contains("press") ->
+                listOf("chest", "tricep", "pectoral", "shoulder")
+            n.contains("pull") || n.contains("back") || n.contains("row") || n.contains("lat") ->
+                listOf("back", "bicep", "lat")
+            n.contains("leg") || n.contains("lower") || n.contains("squat") || n.contains("quad") ->
+                listOf("quadricep", "hamstring", "glute", "calf", "leg")
+            n.contains("shoulder") || n.contains("delt") ->
+                listOf("shoulder", "delt", "tricep")
+            n.contains("arm") || n.contains("bicep") || n.contains("tricep") ->
+                listOf("bicep", "tricep")
+            n.contains("core") || n.contains("abs") ->
+                listOf("core", "abs")
+            else -> emptyList()
+        }
+        val description = when {
+            n.contains("push") || n.contains("chest") -> "Chest, shoulders, and triceps focused session."
+            n.contains("pull") || n.contains("back") -> "Back and biceps focused pulling session."
+            n.contains("leg") || n.contains("lower") -> "Legs and glutes focused session."
+            n.contains("shoulder") || n.contains("delt") -> "Shoulder-focused pressing and raising session."
+            n.contains("arm") -> "Arm isolation — biceps and triceps."
+            n.contains("core") || n.contains("abs") -> "Core stability and strength session."
+            else -> "Full-body strength training session."
+        }
+        val filtered = if (muscleKeywords.isEmpty()) availableExercises else {
+            availableExercises.filter { ex ->
+                muscleKeywords.any { kw ->
+                    ex.muscleGroups.any { mg -> mg.contains(kw, ignoreCase = true) }
+                }
+            }
+        }
+        val selected = (if (filtered.isEmpty()) availableExercises else filtered).shuffled().take(5)
+        return Result.success(
+            WorkoutTemplateSuggestion(
+                description = description,
+                exercises = selected.map { ex ->
+                    SuggestedTemplateExercise(
+                        exerciseId = ex.id,
+                        targetSets = 3,
+                        targetReps = "8-12",
+                        targetWeightKg = null
+                    )
+                }
+            )
+        )
+    }
+
     override fun isAvailable(): Boolean = false
 }

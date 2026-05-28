@@ -32,6 +32,18 @@ data class EstimatedExercise(
     val description: String
 )
 
+data class SuggestedTemplateExercise(
+    val exerciseId: Long,
+    val targetSets: Int,
+    val targetReps: String,
+    val targetWeightKg: Double?
+)
+
+data class WorkoutTemplateSuggestion(
+    val description: String,
+    val exercises: List<SuggestedTemplateExercise>
+)
+
 data class ChatMessage(
     val content: String,
     val isFromUser: Boolean,
@@ -65,5 +77,6 @@ interface AIRepository {
     suspend fun categorizeGroceryItem(itemName: String): Result<String>
     suspend fun estimateNutrition(foodDescription: String): Result<EstimatedNutrition>
     suspend fun estimateExerciseDetails(exerciseName: String): Result<EstimatedExercise>
+    suspend fun estimateWorkoutTemplate(name: String, availableExercises: List<Exercise>): Result<WorkoutTemplateSuggestion>
     fun isAvailable(): Boolean
 }

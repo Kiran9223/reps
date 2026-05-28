@@ -38,7 +38,9 @@
       "Bash(Find-Item -Path \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\\\\ui\\\\theme\" -Filter \"*.kt\")",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Get-ChildItem -Path \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\\\\app\\\\src\\\\main\\\\java\\\\com\\\\reps\\\\app\" -Recurse -Directory)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\Personal-Projects\\\\Reps\\\\Reps\" -Directory)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

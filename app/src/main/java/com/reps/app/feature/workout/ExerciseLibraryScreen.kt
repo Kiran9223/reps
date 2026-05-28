@@ -21,8 +21,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,6 +64,7 @@ private val MUSCLE_GROUPS = listOf(
 @Composable
 fun ExerciseLibraryScreen(
     onNavigateBack: () -> Unit = {},
+    onNavigateToCreateCustomExercise: () -> Unit = {},
     onExercisePicked: ((exerciseId: Long, exerciseName: String) -> Unit)? = null,
     viewModel: ExerciseLibraryViewModel = hiltViewModel()
 ) {
@@ -79,6 +82,13 @@ fun ExerciseLibraryScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNavigateToCreateCustomExercise,
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.custom_exercise_create_fab)) }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -171,6 +181,11 @@ fun ExerciseLibraryScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center
                                 )
+                            }
+                            Button(onClick = onNavigateToCreateCustomExercise) {
+                                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.custom_exercise_create_fab))
                             }
                         }
                     }

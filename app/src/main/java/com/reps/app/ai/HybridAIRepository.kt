@@ -44,7 +44,12 @@ class HybridAIRepository(
     override suspend fun parseMealPlanText(text: String) = gemini.parseMealPlanText(text)
     override suspend fun categorizeGroceryItem(itemName: String) = onDevice.categorizeGroceryItem(itemName)
     override suspend fun estimateNutrition(foodDescription: String) = onDevice.estimateNutrition(foodDescription)
-    override suspend fun estimateExerciseDetails(exerciseName: String) = gemini.estimateExerciseDetails(exerciseName)
+    override suspend fun estimateExerciseDetails(exerciseName: String): Result<EstimatedExercise> {
+        val result = gemini.estimateExerciseDetails(exerciseName)
+        return if (result.isSuccess) result else onDevice.estimateExerciseDetails(exerciseName)
+    }
+    override suspend fun estimateWorkoutTemplate(name: String, availableExercises: List<Exercise>) =
+        gemini.estimateWorkoutTemplate(name, availableExercises)
 
     override suspend fun getQuickWorkoutExercises(
         focus: WorkoutFocus,

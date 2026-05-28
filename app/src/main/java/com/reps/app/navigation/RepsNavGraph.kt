@@ -31,6 +31,7 @@ import com.reps.app.feature.progress.ProgressScreen
 import com.reps.app.feature.settings.SettingsScreen
 import com.reps.app.feature.workout.ActiveWorkoutScreen
 import com.reps.app.feature.workout.CreateWorkoutTemplateScreen
+import com.reps.app.feature.workout.CustomExerciseCreationScreen
 import com.reps.app.feature.workout.ExerciseLibraryScreen
 import com.reps.app.feature.workout.WorkoutHistoryScreen
 import com.reps.app.feature.workout.WorkoutLogScreen
@@ -136,6 +137,9 @@ fun RepsNavGraph(
             val pickMode = backStackEntry.arguments?.getBoolean("pickMode") ?: false
             ExerciseLibraryScreen(
                 onNavigateBack = { navController.popBackStack() },
+                onNavigateToCreateCustomExercise = {
+                    navController.navigate(Screen.CustomExerciseCreation.route)
+                },
                 onExercisePicked = if (pickMode) { exerciseId, exerciseName ->
                     try {
                         val entry = navController.getBackStackEntry(Screen.CreateWorkoutTemplate.route)
@@ -260,6 +264,10 @@ fun RepsNavGraph(
 
         composable(Screen.CustomFoodCreation.route) {
             CustomFoodCreationScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.CustomExerciseCreation.route) {
+            CustomExerciseCreationScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(

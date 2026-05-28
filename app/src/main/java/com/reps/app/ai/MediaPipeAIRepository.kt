@@ -219,6 +219,47 @@ Respond ONLY with valid JSON, no preamble:
             }
         }
 
+    override suspend fun estimateWorkoutTemplate(
+        name: String,
+        availableExercises: List<Exercise>
+    ): Result<WorkoutTemplateSuggestion> = withContext(Dispatchers.IO) {
+        runCatching {
+            val validIds = availableExercises.map { it.id }.toSet()
+            val exerciseList = availableExercises.take(40).joinToString("\n") { ex ->
+                "${ex.id} | ${ex.name} | ${ex.muscleGroups.joinToString(", ")}"
+            }
+            val prompt = """
+You are a gym coach. Design a workout template called "$name".
+Available exercises (id | name | muscles):
+$exerciseList
+Pick 4-6 exercises using only IDs from the list. Use null for bodyweight (weight_kg).
+Respond ONLY with valid JSON, no preamble:
+{"description":"Brief description","exercises":[{"exerciseId":5,"targetSets":4,"targetReps":"6-8","weight_kg":80.0}]}
+            """.trimIndent()
+            val response = llmInference.generateResponse(prompt)
+            val jsonStr = extractJson(response, '{', '}')
+            val obj = json.parseToJsonElement(jsonStr).jsonObject
+            val description = obj["description"]?.jsonPrimitive?.content ?: name
+            val exercises = obj["exercises"]?.jsonArray?.mapNotNull { el ->
+                runCatching {
+                    val e = el.jsonObject
+                    val id = e["exerciseId"]?.jsonPrimitive?.content?.toLongOrNull() ?: return@runCatching null
+                    if (id !in validIds) return@runCatching null
+                    SuggestedTemplateExercise(
+                        exerciseId = id,
+                        targetSets = e["targetSets"]?.jsonPrimitive?.content?.toIntOrNull() ?: 3,
+                        targetReps = e["targetReps"]?.jsonPrimitive?.content ?: "8-12",
+                        targetWeightKg = e["weight_kg"]?.let {
+                            if (it is kotlinx.serialization.json.JsonNull) null
+                            else it.jsonPrimitive.content.toDoubleOrNull()
+                        }
+                    )
+                }.getOrNull()
+            } ?: emptyList()
+            WorkoutTemplateSuggestion(description = description, exercises = exercises)
+        }
+    }
+
     override fun isAvailable(): Boolean = true
 
     private fun parseTokenArray(response: String): List<ParsedMealToken> {

@@ -168,6 +168,7 @@ End-to-end workout tracking from template creation to set-by-set logging with re
 
 #### 5d. Create / Edit Templates
 - Name the template and add a description
+- **"Generate with AI" button:** type a template name like `"Push Day"` or `"Leg Day"` and the AI suggests a description and a full exercise list with sets, reps, and target weights — auto-filling all fields. Uses Gemini if available, falls back to the on-device model or keyword-based presets
 - Pick exercises from the Exercise Library (search + muscle-group filter)
 - Set target sets, reps, and optional target weight per exercise
 - Reorder exercises by drag handle
@@ -180,6 +181,16 @@ End-to-end workout tracking from template creation to set-by-set logging with re
 - Tap to view exercise details or select for a template (pick mode)
 - Exercises seeded from a bundled `exercises.json` asset on first install
 - **"Search online" fallback:** if a search returns no local results, a button appears to query the Wger exercise database — found exercises are downloaded, mapped, and saved to Room so they appear immediately and are available offline from that point forward; already-cached exercises are skipped to avoid duplicates
+- **"Create Custom" FAB:** always visible — opens the Custom Exercise Creation screen. Also appears as a button in the empty-results state when a search returns nothing
+
+#### 5f. Custom Exercise Creation
+- Enter an exercise name and tap **"Estimate with AI"** — the AI fills in muscle groups, equipment, shoulder-safe flag, restricted movements, and a description
+- All fields are editable after AI fill — nothing is locked in
+- Shoulder Safe toggle defaults to on; disable it to flag movements that stress the shoulder joint
+- Muscle Groups and Equipment are comma-separated text fields (e.g. `"Quadriceps, Glutes"`, `"Barbell, Rack"`)
+- Restricted Movements field captures unsafe movement patterns (e.g. `"overhead, behind-neck"`)
+- AI backend: tries Gemini first for richer descriptions, falls back to on-device MediaPipe, then keyword matching — always returns a result
+- Saved exercises appear immediately in the Exercise Library and can be added to any template
 
 ---
 
@@ -298,12 +309,16 @@ Reps uses a three-tier hybrid AI system to balance capability, privacy, and API 
 │                                                         │
 │  Chat / Plan Import ──────────────────► GeminiRepository│
 │                                         (Cloud, Gemini  │
-│  All other tasks ──────────────────────► 2.5 Flash)     │
-│  (NL meal, insights,                                     │
-│   meal suggest,              MediaPipeAIRepository      │
-│   shoulder alts,        ──► (On-device, Gemma 3n via    │
-│   AI categorise,             MediaPipe LLM Inference)   │
-│   AI estimate nutrition)                                 │
+│  Exercise details /                     2.5 Flash)      │
+│  Template generation  ─► Gemini first,                  │
+│                          then MediaPipe fallback         │
+│                                                         │
+│  All other tasks ──────────────────────►                 │
+│  (NL meal, insights,         MediaPipeAIRepository      │
+│   meal suggest,         ──► (On-device, Gemma 3n via    │
+│   shoulder alts,             MediaPipe LLM Inference)   │
+│   AI categorise,                                        │
+│   AI estimate nutrition)                                │
 │                                                         │
 │  Fallback (model not found)                             │
 │  ─────────────────────────► RuleBasedAIRepository       │
@@ -315,6 +330,8 @@ Reps uses a three-tier hybrid AI system to balance capability, privacy, and API 
 |---|---|---|
 | Chat | Gemini | Requires long context, action parsing |
 | Import plan (parse) | Gemini | Complex table/text parsing needs strong model |
+| Exercise detail estimation | Gemini → MediaPipe fallback | Richer descriptions from cloud; always works offline |
+| Workout template generation | Gemini → MediaPipe fallback | Exercise selection from live DB; keyword presets as last resort |
 | Nutrition estimation | MediaPipe | Fast, frequent, runs on save |
 | Grocery categorisation | MediaPipe | Simple classification, called per item |
 | Natural language meal | MediaPipe | Frequent, short output |

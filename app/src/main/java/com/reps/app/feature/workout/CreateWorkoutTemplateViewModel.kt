@@ -3,14 +3,19 @@ package com.reps.app.feature.workout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reps.app.ai.AIRepository
+import com.reps.app.core.di.IoDispatcher
+import com.reps.app.core.domain.model.ExerciseFilter
 import com.reps.app.core.domain.model.TemplateExerciseDraft
 import com.reps.app.core.domain.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class DraftExerciseItem(
@@ -28,15 +33,19 @@ data class CreateTemplateState(
     val exercises: List<DraftExerciseItem> = emptyList(),
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
+    val isEstimating: Boolean = false,
     val nameError: Boolean = false,
     val noExerciseError: Boolean = false,
+    val estimationError: String? = null,
     val savedTemplateId: Long? = null
 )
 
 @HiltViewModel
 class CreateWorkoutTemplateViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val workoutRepository: WorkoutRepository
+    private val workoutRepository: WorkoutRepository,
+    private val aiRepository: AIRepository,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
     private val editTemplateId: Long? =
@@ -120,6 +129,46 @@ class CreateWorkoutTemplateViewModel @Inject constructor(
                 if (it.exerciseId == exerciseId) it.copy(targetWeightKg = weightKg) else it
             }
         )
+    }
+
+    fun estimateWorkout() {
+        val name = _state.value.name.trim()
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isEstimating = true, estimationError = null)
+            val exercises = withContext(ioDispatcher) {
+                workoutRepository.getExercises(ExerciseFilter()).first()
+            }
+            val result = withContext(ioDispatcher) {
+                aiRepository.estimateWorkoutTemplate(name, exercises)
+            }
+            result.fold(
+                onSuccess = { suggestion ->
+                    val exerciseMap = exercises.associateBy { it.id }
+                    _state.value = _state.value.copy(
+                        isEstimating = false,
+                        description = if (_state.value.description.isBlank()) suggestion.description else _state.value.description,
+                        exercises = suggestion.exercises.mapNotNull { se ->
+                            val ex = exerciseMap[se.exerciseId] ?: return@mapNotNull null
+                            DraftExerciseItem(
+                                exerciseId = se.exerciseId,
+                                exerciseName = ex.name,
+                                targetSets = se.targetSets,
+                                targetReps = se.targetReps,
+                                targetWeightKg = se.targetWeightKg
+                            )
+                        },
+                        noExerciseError = false
+                    )
+                },
+                onFailure = {
+                    _state.value = _state.value.copy(
+                        isEstimating = false,
+                        estimationError = "Generation failed. Add exercises manually."
+                    )
+                }
+            )
+        }
     }
 
     fun saveTemplate() {

@@ -25,6 +25,7 @@ sealed class Screen(val route: String) {
     }
 
     object CustomFoodCreation : Screen("custom_food_creation")
+    object CustomExerciseCreation : Screen("custom_exercise_creation")
 
     object NaturalLanguageEntry : Screen("natural_language_entry/{date}/{slot}") {
         fun createRoute(date: String, slot: String) = "natural_language_entry/$date/$slot"
